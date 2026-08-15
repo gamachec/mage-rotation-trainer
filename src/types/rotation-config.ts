@@ -36,8 +36,26 @@ export interface PreviousCastCondition {
   spellId: number
 }
 
+/**
+ * Vrai si la valeur courante de la ressource de personnage `powerType` (ID numérique Blizzard,
+ * ex : 16 = Charges Arcaniques — PLAN.md Étape 18) satisfait `operator value`. Reconstruite à
+ * partir des gains observés (`PlayerTimeline.resourceGains`) et des remises à zéro déclarées
+ * par `RotationConfig.resourceConsumers` — voir ce champ pour le détail, la perte de ressource
+ * n'étant pas directement présente dans le combat log.
+ */
+export interface ResourceValueCondition {
+  type: 'resourceValue'
+  powerType: number
+  operator: ComparisonOperator
+  value: number
+}
+
 export type RotationCondition =
-  AuraStacksCondition | AuraActiveCondition | SpellCooldownReadyCondition | PreviousCastCondition
+  | AuraStacksCondition
+  | AuraActiveCondition
+  | SpellCooldownReadyCondition
+  | PreviousCastCondition
+  | ResourceValueCondition
 
 /**
  * Règle de rotation : si toutes les `conditions` sont vraies (ET logique), le sort attendu
@@ -70,14 +88,30 @@ export interface ChanneledSpellConfig {
 }
 
 /**
+ * Déclare que la réussite d'un cast de l'un des `spellIds` remet à zéro la ressource
+ * `powerType` (PLAN.md Étape 18). Connaissance de mécanique de jeu **non présente dans le
+ * combat log** (Blizzard ne logue que les gains de ressource via `SPELL_ENERGIZE`, jamais les
+ * pertes/consommations) — doit donc être déclarée explicitement en config plutôt que déduite
+ * du log, pour que le moteur reste générique (pas de règle Arcane en dur : Barrage des Arcanes
+ * consommant les Charges Arcaniques est une donnée de la config par défaut, pas du moteur).
+ */
+export interface ResourceConsumerConfig {
+  powerType: number
+  spellIds: number[]
+}
+
+/**
  * Rotation cible configurable (SPECS.md §5, PLAN.md Étape 9) : liste de règles ordonnées
  * par priorité, évaluées de haut en bas — la première règle dont toutes les conditions
  * sont vraies détermine le sort attendu (premier match gagne, décision Étape 0).
  * `channeledSpells` (optionnel) déclare les sorts canalisés à surveiller pour la détection
  * de canalisation interrompue — donnée intrinsèque au sort, pas une préférence de rotation,
  * mais reste dans ce fichier de config pour rester éditable sans toucher au code.
+ * `resourceConsumers` (optionnel) déclare les remises à zéro de ressource nécessaires à
+ * l'évaluation des conditions `resourceValue` — voir `ResourceConsumerConfig`.
  */
 export interface RotationConfig {
   rules: RotationRule[]
   channeledSpells?: ChanneledSpellConfig[]
+  resourceConsumers?: ResourceConsumerConfig[]
 }

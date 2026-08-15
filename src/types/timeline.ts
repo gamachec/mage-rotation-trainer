@@ -24,6 +24,21 @@ export interface TimelineDamageTick {
 }
 
 /**
+ * Un gain de ressource de personnage observé (`SPELL_ENERGIZE`, PLAN.md Étape 18) — mana,
+ * charges arcaniques, points de combo, etc., `powerType` étant l'ID numérique Blizzard de
+ * la ressource concernée. Uniquement les **gains** : Blizzard ne logue pas les pertes/
+ * consommations de ressource (aucun événement de ce type trouvé sur un vrai combat log) —
+ * la consommation doit être déduite d'une règle de jeu déclarée en config
+ * (`RotationConfig.resourceConsumers`), pas lue depuis la timeline.
+ */
+export interface TimelineResourceGain {
+  timestamp: number
+  powerType: number
+  amount: number
+  maxPower: number
+}
+
+/**
  * Timeline chronologique de l'état d'un joueur sur un segment de combat.
  * Structure pivot consommée par le moteur de comparaison (PLAN.md Étape 10) et par
  * la visualisation (Étape 14). Reconstruite uniquement à partir des événements réels
@@ -36,4 +51,5 @@ export interface PlayerTimeline {
   casts: TimelineCast[]
   auraChanges: TimelineAuraChange[]
   damageTicks: TimelineDamageTick[]
+  resourceGains: TimelineResourceGain[]
 }

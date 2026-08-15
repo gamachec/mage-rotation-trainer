@@ -172,6 +172,67 @@ describe('parseRotationConfig', () => {
     }
   })
 
+  it('parse une config valide avec condition resourceValue', () => {
+    const config = parseRotationConfig({
+      rules: [
+        {
+          spellId: 153626,
+          conditions: [{ type: 'resourceValue', powerType: 16, operator: '==', value: 0 }],
+        },
+      ],
+    })
+
+    expect(config.rules[0]).toEqual({
+      spellId: 153626,
+      conditions: [{ type: 'resourceValue', powerType: 16, operator: '==', value: 0 }],
+    })
+  })
+
+  it('rejette une condition resourceValue avec un powerType invalide', () => {
+    try {
+      parseRotationConfig({
+        rules: [
+          {
+            spellId: 1,
+            conditions: [{ type: 'resourceValue', powerType: 'seize', operator: '==', value: 0 }],
+          },
+        ],
+      })
+      expect.fail('devait lever une exception')
+    } catch (error) {
+      expect(error).toBeInstanceOf(RotationConfigValidationError)
+      expect((error as RotationConfigValidationError).issues[0]).toContain('powerType')
+    }
+  })
+
+  it('parse une config valide avec resourceConsumers', () => {
+    const config = parseRotationConfig({
+      rules: [{ spellId: 5143, conditions: [] }],
+      resourceConsumers: [{ powerType: 16, spellIds: [44425] }],
+    })
+
+    expect(config.resourceConsumers).toEqual([{ powerType: 16, spellIds: [44425] }])
+  })
+
+  it('omet resourceConsumers si absent de la config brute', () => {
+    const config = parseRotationConfig({ rules: [{ spellId: 5143, conditions: [] }] })
+
+    expect(config.resourceConsumers).toBeUndefined()
+  })
+
+  it('rejette une entrée resourceConsumers avec spellIds vide', () => {
+    try {
+      parseRotationConfig({
+        rules: [{ spellId: 5143, conditions: [] }],
+        resourceConsumers: [{ powerType: 16, spellIds: [] }],
+      })
+      expect.fail('devait lever une exception')
+    } catch (error) {
+      expect(error).toBeInstanceOf(RotationConfigValidationError)
+      expect((error as RotationConfigValidationError).issues[0]).toContain('spellIds')
+    }
+  })
+
   it('collecte tous les problèmes trouvés plutôt que de s’arrêter au premier', () => {
     try {
       parseRotationConfig({

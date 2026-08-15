@@ -9,9 +9,10 @@ describe('getSpellName', () => {
     expect(getSpellName(36032)).toBe('Charge arcanique')
     expect(getSpellName(263725)).toBe('Idées claires')
     expect(getSpellName(153626)).toBe('Orbe arcanique')
-    expect(getSpellName(384452)).toBe('Salve arcanique')
+    expect(getSpellName(1242974)).toBe('Salve arcanique')
     expect(getSpellName(451038)).toBe('Âme des arcanes')
     expect(getSpellName(1295924)).toBe('Trait prismatique')
+    expect(getSpellName(1295942)).toBe('Trait prismatique !')
   })
 
   it('retourne un libellé de repli pour un ID inconnu de la table', () => {

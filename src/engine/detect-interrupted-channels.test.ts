@@ -17,7 +17,14 @@ function timelineFrom(
   casts: PlayerTimeline['casts'],
   damageTicks: PlayerTimeline['damageTicks'] = [],
 ): PlayerTimeline {
-  return { playerGuid: 'Player-1-AAAA', playerName: 'Someone', casts, auraChanges: [], damageTicks }
+  return {
+    playerGuid: 'Player-1-AAAA',
+    playerName: 'Someone',
+    casts,
+    auraChanges: [],
+    damageTicks,
+    resourceGains: [],
+  }
 }
 
 function ticksAt(timestamps: number[]): PlayerTimeline['damageTicks'] {

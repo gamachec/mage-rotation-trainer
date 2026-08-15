@@ -29,7 +29,7 @@
       "spellId": 5143,
       "conditions": [
         { "type": "auraActive", "spellId": 263725, "active": true },
-        { "type": "auraStacks", "spellId": 384452, "operator": "<", "value": 12 }
+        { "type": "auraStacks", "spellId": 1242974, "operator": "<", "value": 12 }
       ]
     },
     {
@@ -38,23 +38,24 @@
     },
     {
       "spellId": 1295924,
-      "conditions": [{ "type": "auraActive", "spellId": 1295924, "active": true }]
+      "conditions": [{ "type": "auraActive", "spellId": 1295942, "active": true }]
     },
     {
       "spellId": 44425,
       "conditions": [
         { "type": "auraActive", "spellId": 263725, "active": true },
-        { "type": "auraStacks", "spellId": 384452, "operator": ">=", "value": 12 }
+        { "type": "auraStacks", "spellId": 1242974, "operator": ">=", "value": 12 }
       ]
     },
     {
       "spellId": 153626,
-      "conditions": [{ "type": "auraStacks", "spellId": 36032, "operator": "==", "value": 0 }]
+      "conditions": [{ "type": "resourceValue", "powerType": 16, "operator": "==", "value": 0 }]
     },
     {
       "spellId": 30451,
       "conditions": []
     }
   ],
-  "channeledSpells": [{ "castSpellId": 5143, "tickSpellId": 7268, "expectedTicks": 7 }]
+  "channeledSpells": [{ "castSpellId": 5143, "tickSpellId": 7268, "expectedTicks": 7 }],
+  "resourceConsumers": [{ "powerType": 16, "spellIds": [44425] }]
 }

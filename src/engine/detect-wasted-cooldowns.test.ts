@@ -22,6 +22,7 @@ function timelineFrom(casts: PlayerTimeline['casts']): PlayerTimeline {
     casts,
     auraChanges: [],
     damageTicks: [],
+    resourceGains: [],
   }
 }
 

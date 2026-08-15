@@ -2,13 +2,16 @@ import type {
   Aura,
   ComparisonOperator,
   PlayerTimeline,
+  ResourceConsumerConfig,
   RotationComparisonResult,
   RotationCondition,
   RotationConfig,
   RotationRule,
   TimelineAuraChange,
   TimelineCast,
+  TimelineResourceGain,
 } from '../types'
+import { resolveResourceValueBefore } from './resource-tracker'
 
 function compareNumbers(current: number, operator: ComparisonOperator, value: number): boolean {
   switch (operator) {
@@ -72,6 +75,8 @@ function evaluateCondition(
   activeAuras: Map<number, Aura>,
   castsBefore: TimelineCast[],
   timestamp: number,
+  resourceGains: TimelineResourceGain[],
+  resourceConsumers: ResourceConsumerConfig[],
 ): boolean {
   switch (condition.type) {
     case 'auraStacks': {
@@ -90,6 +95,16 @@ function evaluateCondition(
       const previousCast = castsBefore[castsBefore.length - 1]
       return previousCast !== undefined && previousCast.spell.id === condition.spellId
     }
+    case 'resourceValue': {
+      const value = resolveResourceValueBefore(
+        resourceGains,
+        castsBefore,
+        resourceConsumers,
+        condition.powerType,
+        timestamp,
+      )
+      return compareNumbers(value, condition.operator, condition.value)
+    }
   }
 }
 
@@ -98,9 +113,18 @@ function matchesRule(
   activeAuras: Map<number, Aura>,
   castsBefore: TimelineCast[],
   timestamp: number,
+  resourceGains: TimelineResourceGain[],
+  resourceConsumers: ResourceConsumerConfig[],
 ): boolean {
   return rule.conditions.every((condition) =>
-    evaluateCondition(condition, activeAuras, castsBefore, timestamp),
+    evaluateCondition(
+      condition,
+      activeAuras,
+      castsBefore,
+      timestamp,
+      resourceGains,
+      resourceConsumers,
+    ),
   )
 }
 
@@ -109,17 +133,20 @@ function matchesRule(
  * l'historique des casts précédents donnés (première règle dont toutes les conditions sont
  * vraies, décision Étape 0). `null` si aucune règle ne matche (config incomplète, pas de
  * "sinon" par défaut). `castsBefore`/`timestamp` ne sont utiles qu'aux conditions
- * `spellCooldownReady`/`previousCastIs` (PLAN-BURST.md Étape 2) — omissibles pour les config
- * qui n'en utilisent pas.
+ * `spellCooldownReady`/`previousCastIs` (PLAN-BURST.md Étape 2), `resourceGains` qu'aux
+ * conditions `resourceValue` (PLAN.md Étape 18) — omissibles pour les config qui n'en
+ * utilisent pas.
  */
 export function resolveExpectedSpell(
   config: RotationConfig,
   activeAuras: Map<number, Aura>,
   castsBefore: TimelineCast[] = [],
   timestamp: number = Number.POSITIVE_INFINITY,
+  resourceGains: TimelineResourceGain[] = [],
 ): number | null {
+  const resourceConsumers = config.resourceConsumers ?? []
   const matchingRule = config.rules.find((rule) =>
-    matchesRule(rule, activeAuras, castsBefore, timestamp),
+    matchesRule(rule, activeAuras, castsBefore, timestamp, resourceGains, resourceConsumers),
   )
   return matchingRule?.spellId ?? null
 }
@@ -137,7 +164,13 @@ export function compareRotation(
   return timeline.casts.map((cast, index) => {
     const activeAuras = resolveActiveAurasBefore(timeline.auraChanges, cast.timestamp)
     const castsBefore = timeline.casts.slice(0, index)
-    const expectedSpellId = resolveExpectedSpell(config, activeAuras, castsBefore, cast.timestamp)
+    const expectedSpellId = resolveExpectedSpell(
+      config,
+      activeAuras,
+      castsBefore,
+      cast.timestamp,
+      timeline.resourceGains,
+    )
 
     return {
       timestamp: cast.timestamp,

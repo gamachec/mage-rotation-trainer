@@ -131,6 +131,42 @@ describe('buildPlayerTimeline', () => {
     expect(timeline.damageTicks).toEqual([])
   })
 
+  it('capture les gains de ressource (SPELL_ENERGIZE) dont le joueur est la cible', () => {
+    const events: CombatLogEvent[] = [
+      buildEvent({
+        type: 'SPELL_ENERGIZE',
+        timestamp: 1234,
+        destGuid: 'Player-1-AAAA',
+        powerType: 16,
+        amount: 1,
+        maxPower: 4,
+      } as Partial<CombatLogEvent> & { type: 'SPELL_ENERGIZE' }),
+    ]
+
+    const timeline = buildPlayerTimeline(events, { guid: 'Player-1-AAAA', name: 'Someone' })
+
+    expect(timeline.resourceGains).toEqual([
+      { timestamp: 1234, powerType: 16, amount: 1, maxPower: 4 },
+    ])
+  })
+
+  it("ignore les gains de ressource dont le joueur n'est pas la cible", () => {
+    const events: CombatLogEvent[] = [
+      buildEvent({
+        type: 'SPELL_ENERGIZE',
+        sourceGuid: 'Player-2-BBBB',
+        destGuid: 'Player-2-BBBB',
+        powerType: 16,
+        amount: 1,
+        maxPower: 4,
+      } as Partial<CombatLogEvent> & { type: 'SPELL_ENERGIZE' }),
+    ]
+
+    const timeline = buildPlayerTimeline(events, { guid: 'Player-1-AAAA', name: 'Someone' })
+
+    expect(timeline.resourceGains).toEqual([])
+  })
+
   it('retourne une timeline vide sans événement', () => {
     const timeline = buildPlayerTimeline([], { guid: 'Player-1-AAAA', name: 'Someone' })
 
@@ -140,6 +176,7 @@ describe('buildPlayerTimeline', () => {
       casts: [],
       auraChanges: [],
       damageTicks: [],
+      resourceGains: [],
     })
   })
 })

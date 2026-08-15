@@ -29,8 +29,16 @@ const CONFIG: RotationConfig = {
 function timelineFrom(
   casts: PlayerTimeline['casts'],
   auraChanges: PlayerTimeline['auraChanges'],
+  resourceGains: PlayerTimeline['resourceGains'] = [],
 ): PlayerTimeline {
-  return { playerGuid: 'Player-1-AAAA', playerName: 'Someone', casts, auraChanges, damageTicks: [] }
+  return {
+    playerGuid: 'Player-1-AAAA',
+    playerName: 'Someone',
+    casts,
+    auraChanges,
+    damageTicks: [],
+    resourceGains,
+  }
 }
 
 describe('resolveExpectedSpell', () => {
@@ -280,5 +288,78 @@ describe('conditions spellCooldownReady et previousCastIs', () => {
 
     expect(result.expectedSpellId).toBe(ARCANE_BLAST)
     expect(result.isCorrect).toBe(false)
+  })
+})
+
+describe('condition resourceValue', () => {
+  const ARCANE_ORB = 153626
+  const ARCANE_CHARGES_POWER_TYPE = 16
+
+  const ORB_CONFIG: RotationConfig = {
+    rules: [
+      {
+        spellId: ARCANE_ORB,
+        conditions: [
+          { type: 'resourceValue', powerType: ARCANE_CHARGES_POWER_TYPE, operator: '==', value: 0 },
+        ],
+      },
+      { spellId: ARCANE_BLAST, conditions: [] },
+    ],
+    resourceConsumers: [{ powerType: ARCANE_CHARGES_POWER_TYPE, spellIds: [ARCANE_BARRAGE] }],
+  }
+
+  it('resourceValue est vrai à 0 gain observé (valeur par défaut 0)', () => {
+    const timeline: PlayerTimeline = {
+      playerGuid: 'Player-1-AAAA',
+      playerName: 'Someone',
+      casts: [{ timestamp: 1000, spell: { id: ARCANE_ORB, name: 'Orbe arcanique' } }],
+      auraChanges: [],
+      damageTicks: [],
+      resourceGains: [],
+    }
+
+    const [result] = compareRotation(timeline, ORB_CONFIG)
+
+    expect(result.expectedSpellId).toBe(ARCANE_ORB)
+    expect(result.isCorrect).toBe(true)
+  })
+
+  it('resourceValue reflète les gains accumulés avant le cast évalué', () => {
+    const timeline: PlayerTimeline = {
+      playerGuid: 'Player-1-AAAA',
+      playerName: 'Someone',
+      casts: [{ timestamp: 1000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } }],
+      auraChanges: [],
+      damageTicks: [],
+      resourceGains: [
+        { timestamp: 500, powerType: ARCANE_CHARGES_POWER_TYPE, amount: 1, maxPower: 4 },
+      ],
+    }
+
+    const [result] = compareRotation(timeline, ORB_CONFIG)
+
+    expect(result.expectedSpellId).toBe(ARCANE_BLAST)
+    expect(result.isCorrect).toBe(true)
+  })
+
+  it('resourceValue retombe à 0 après le cast d’un sort consommateur déclaré', () => {
+    const timeline: PlayerTimeline = {
+      playerGuid: 'Player-1-AAAA',
+      playerName: 'Someone',
+      casts: [
+        { timestamp: 500, spell: { id: ARCANE_BARRAGE, name: 'Barrage des Arcanes' } },
+        { timestamp: 1000, spell: { id: ARCANE_ORB, name: 'Orbe arcanique' } },
+      ],
+      auraChanges: [],
+      damageTicks: [],
+      resourceGains: [
+        { timestamp: 100, powerType: ARCANE_CHARGES_POWER_TYPE, amount: 3, maxPower: 4 },
+      ],
+    }
+
+    const [, result] = compareRotation(timeline, ORB_CONFIG)
+
+    expect(result.expectedSpellId).toBe(ARCANE_ORB)
+    expect(result.isCorrect).toBe(true)
   })
 })

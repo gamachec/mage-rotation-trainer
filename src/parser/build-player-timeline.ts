@@ -5,6 +5,7 @@ import type {
   TimelineAuraChange,
   TimelineCast,
   TimelineDamageTick,
+  TimelineResourceGain,
 } from '../types'
 
 /**
@@ -38,6 +39,7 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
   const casts: TimelineCast[] = []
   const auraChanges: TimelineAuraChange[] = []
   const damageTicks: TimelineDamageTick[] = []
+  const resourceGains: TimelineResourceGain[] = []
 
   for (const event of events) {
     switch (event.type) {
@@ -70,8 +72,25 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
           damageTicks.push({ timestamp: event.timestamp, spellId: event.spellId })
         }
         break
+      case 'SPELL_ENERGIZE':
+        if (event.destGuid === player.guid) {
+          resourceGains.push({
+            timestamp: event.timestamp,
+            powerType: event.powerType,
+            amount: event.amount,
+            maxPower: event.maxPower,
+          })
+        }
+        break
     }
   }
 
-  return { playerGuid: player.guid, playerName: player.name, casts, auraChanges, damageTicks }
+  return {
+    playerGuid: player.guid,
+    playerName: player.name,
+    casts,
+    auraChanges,
+    damageTicks,
+    resourceGains,
+  }
 }

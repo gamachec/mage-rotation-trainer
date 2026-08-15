@@ -18,6 +18,7 @@ const timeline: PlayerTimeline = {
     },
   ],
   damageTicks: [],
+  resourceGains: [],
 }
 
 const comparisonResults: RotationComparisonResult[] = [

@@ -12,6 +12,7 @@ const HANDLED_EVENT_TYPES = new Set<CombatLogEventType>([
   'SPELL_AURA_REMOVED',
   'SPELL_AURA_REMOVED_DOSE',
   'SPELL_DAMAGE',
+  'SPELL_ENERGIZE',
 ])
 
 /**
@@ -91,6 +92,16 @@ interface ParsedPrefix {
 /** Index, dans `rest`, du champ `amount` de SPELL_DAMAGE (19 champs d'advanced logging avant lui). */
 const SPELL_DAMAGE_AMOUNT_INDEX = 19
 
+/**
+ * Index, dans `rest`, des champs de suffixe propres à SPELL_ENERGIZE (mêmes 19 champs
+ * d'advanced logging que SPELL_DAMAGE avant eux — vérifié empiriquement sur un vrai combat
+ * log, PLAN.md Étape 18) : `amount, overEnergize, powerType, maxPower`. `overEnergize` n'est
+ * pas capturé dans `SpellEnergizeEvent` (pas de besoin identifié).
+ */
+const SPELL_ENERGIZE_AMOUNT_INDEX = 19
+const SPELL_ENERGIZE_POWER_TYPE_INDEX = 21
+const SPELL_ENERGIZE_MAX_POWER_INDEX = 22
+
 function parsePrefix(fields: string[], eventType: CombatLogEventType): ParsedPrefix | null {
   if (fields.length < 12) {
     return null
@@ -152,6 +163,24 @@ function buildEvent(prefix: ParsedPrefix, timestamp: number): CombatLogEvent | n
         return null
       }
       return { type: 'SPELL_DAMAGE', timestamp, ...base, ...spellFields, amount }
+    }
+
+    case 'SPELL_ENERGIZE': {
+      const amount = Number(rest[SPELL_ENERGIZE_AMOUNT_INDEX])
+      const powerType = Number(rest[SPELL_ENERGIZE_POWER_TYPE_INDEX])
+      const maxPower = Number(rest[SPELL_ENERGIZE_MAX_POWER_INDEX])
+      if (Number.isNaN(amount) || Number.isNaN(powerType) || Number.isNaN(maxPower)) {
+        return null
+      }
+      return {
+        type: 'SPELL_ENERGIZE',
+        timestamp,
+        ...base,
+        ...spellFields,
+        amount,
+        powerType,
+        maxPower,
+      }
     }
 
     default:

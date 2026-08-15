@@ -4,6 +4,8 @@ import type {
   ChanneledSpellConfig,
   ComparisonOperator,
   PreviousCastCondition,
+  ResourceConsumerConfig,
+  ResourceValueCondition,
   RotationCondition,
   RotationConfig,
   RotationRule,
@@ -101,8 +103,27 @@ function validateCondition(raw: unknown, path: string, issues: string[]): Rotati
     return valid ? (raw as unknown as PreviousCastCondition) : null
   }
 
+  if (raw.type === 'resourceValue') {
+    let valid = true
+    if (typeof raw.powerType !== 'number' || !Number.isInteger(raw.powerType)) {
+      issues.push(`${path}.powerType : doit être un entier (reçu ${JSON.stringify(raw.powerType)})`)
+      valid = false
+    }
+    if (!COMPARISON_OPERATORS.includes(raw.operator as ComparisonOperator)) {
+      issues.push(
+        `${path}.operator : doit être l'un de ${COMPARISON_OPERATORS.join(', ')} (reçu ${JSON.stringify(raw.operator)})`,
+      )
+      valid = false
+    }
+    if (typeof raw.value !== 'number') {
+      issues.push(`${path}.value : doit être un nombre (reçu ${JSON.stringify(raw.value)})`)
+      valid = false
+    }
+    return valid ? (raw as unknown as ResourceValueCondition) : null
+  }
+
   issues.push(
-    `${path}.type : doit être "auraStacks", "auraActive", "spellCooldownReady" ou "previousCastIs" (reçu ${JSON.stringify(raw.type)})`,
+    `${path}.type : doit être "auraStacks", "auraActive", "spellCooldownReady", "previousCastIs" ou "resourceValue" (reçu ${JSON.stringify(raw.type)})`,
   )
   return null
 }
@@ -194,6 +215,37 @@ function validateChanneledSpell(
     : null
 }
 
+function validateResourceConsumer(
+  raw: unknown,
+  index: number,
+  issues: string[],
+): ResourceConsumerConfig | null {
+  const path = `resourceConsumers[${index}]`
+
+  if (!isPlainObject(raw)) {
+    issues.push(`${path} : doit être un objet (reçu ${JSON.stringify(raw)})`)
+    return null
+  }
+
+  let valid = true
+  if (typeof raw.powerType !== 'number' || !Number.isInteger(raw.powerType)) {
+    issues.push(`${path}.powerType : doit être un entier (reçu ${JSON.stringify(raw.powerType)})`)
+    valid = false
+  }
+  if (
+    !Array.isArray(raw.spellIds) ||
+    raw.spellIds.length === 0 ||
+    !raw.spellIds.every(isPositiveIntegerSpellId)
+  ) {
+    issues.push(
+      `${path}.spellIds : doit être un tableau non vide d'entiers positifs (reçu ${JSON.stringify(raw.spellIds)})`,
+    )
+    valid = false
+  }
+
+  return valid ? { powerType: raw.powerType as number, spellIds: raw.spellIds as number[] } : null
+}
+
 /**
  * Valide et parse une config de rotation cible brute (typiquement issue de `JSON.parse`
  * sur un fichier édité à la main par l'utilisateur — SPECS.md §5). Collecte l'ensemble des
@@ -239,9 +291,31 @@ export function parseRotationConfig(raw: unknown): RotationConfig {
     }
   }
 
+  let resourceConsumers: ResourceConsumerConfig[] | undefined
+  if (raw.resourceConsumers !== undefined) {
+    if (!Array.isArray(raw.resourceConsumers)) {
+      issues.push(
+        `resourceConsumers : doit être un tableau (reçu ${JSON.stringify(raw.resourceConsumers)})`,
+      )
+    } else {
+      const parsedResourceConsumers: ResourceConsumerConfig[] = []
+      raw.resourceConsumers.forEach((rawResourceConsumer, index) => {
+        const resourceConsumer = validateResourceConsumer(rawResourceConsumer, index, issues)
+        if (resourceConsumer !== null) {
+          parsedResourceConsumers.push(resourceConsumer)
+        }
+      })
+      resourceConsumers = parsedResourceConsumers
+    }
+  }
+
   if (issues.length > 0) {
     throw new RotationConfigValidationError(issues)
   }
 
-  return channeledSpells !== undefined ? { rules, channeledSpells } : { rules }
+  return {
+    rules,
+    ...(channeledSpells !== undefined ? { channeledSpells } : {}),
+    ...(resourceConsumers !== undefined ? { resourceConsumers } : {}),
+  }
 }

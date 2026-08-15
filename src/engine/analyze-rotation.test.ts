@@ -22,6 +22,7 @@ function timelineFrom(casts: PlayerTimeline['casts']): PlayerTimeline {
     casts,
     auraChanges: [],
     damageTicks: [],
+    resourceGains: [],
   }
 }
 
@@ -112,6 +113,7 @@ describe('analyzeRotation', () => {
         { timestamp: 200, spellId: ARCANE_MISSILES_TICK },
         { timestamp: 500, spellId: ARCANE_MISSILES_TICK },
       ],
+      resourceGains: [],
     }
 
     const configAvecCanalisation: RotationConfig = {

@@ -12,6 +12,7 @@ const REAL_LINES = {
   auraRemovedDose: `8/15/2026 11:27:21.9782  SPELL_AURA_REMOVED_DOSE,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,449322,"Cascade de mana",0x1,BUFF,1`,
   auraRemoved: `8/15/2026 11:27:23.6852  SPELL_AURA_REMOVED,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,449322,"Cascade de mana",0x1,BUFF`,
   damage: `8/15/2026 11:27:15.9852  SPELL_DAMAGE,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Creature-0-3894-0-85410-243167-00007FC38E,"Mannequin d'entraînement de donjonage",0x10a28,0x80000000,30451,"Déflagration des Arcanes",0x40,Creature-0-3894-0-85410-243167-00007FC38E,0000000000000000,4116245,7074100,0,0,1470,0,0,0,1,0,0,0,8181.56,-4338.34,2393,2.2479,90,14829,6595,-1,64,0,0,0,1,nil,nil,ST`,
+  energize: `8/15/2026 15:25:55.0392  SPELL_ENERGIZE,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,461524,"Haute tension",0x40,Player-1127-0AC1C10B,0000000000000000,576620,576620,229,2505,541,592,152,185959,0,57863,331065,0,8184.83,-4356.53,2393,4.8513,293,1.0000,0.0000,16,4`,
   unhandled: `8/15/2026 11:27:40.0222  SPELL_PERIODIC_DAMAGE,Player-1127-099B38FC,"Khazoute-LesSentinelles-EU",0x548,0x80000000,Creature-0-3894-0-85410-243166-00007FC38E,"Tank d'entraînement normal",0xa28,0x80000000,1287663,"Rune de persistance",0x6a,Creature-0-3894-0-85410-243166-00007FC38E,0000000000000000,1,3537050,0,0,1470,0,0,0,1,0,0,0,8210.03,-4353.90,2393,3.4441,90,361,360,360,106,0,0,0,nil,nil,nil,ST`,
   header: `8/15/2026 11:27:07.8822  COMBAT_LOG_VERSION,22,ADVANCED_LOG_ENABLED,1,BUILD_VERSION,12.1.0,PROJECT_ID,1`,
 }
@@ -76,6 +77,18 @@ describe('parseCombatLogLine', () => {
       type: 'SPELL_DAMAGE',
       spellId: 30451,
       amount: 14829,
+    })
+  })
+
+  it('parse un SPELL_ENERGIZE (gain de ressource, ex : charges arcaniques powerType 16)', () => {
+    const event = parseCombatLogLine(REAL_LINES.energize, ARBITRARY_BASE_MS)
+    expect(event).toMatchObject({
+      type: 'SPELL_ENERGIZE',
+      spellId: 461524,
+      spellName: 'Haute tension',
+      amount: 1,
+      powerType: 16,
+      maxPower: 4,
     })
   })
 
