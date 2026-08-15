@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import {computed, ref, watch} from 'vue'
 import PlayerSelector from './components/PlayerSelector.vue'
 import SegmentSelector from './components/SegmentSelector.vue'
 import RotationTimeline from './components/RotationTimeline.vue'
 import RotationReport from './views/RotationReport.vue'
-import { parseCombatLogFile } from './workers/parse-combat-log-file'
-import { detectPlayers } from './parser/detect-players'
-import { detectCombatSegments } from './parser/detect-combat-segments'
-import { filterEventsByPlayer } from './parser/filter-events-by-player'
-import { buildPlayerTimeline } from './parser/build-player-timeline'
-import { compareRotation } from './engine/compare-rotation'
-import { analyzeRotation } from './engine/analyze-rotation'
-import { filterTimelineToKnownSpells } from './engine/known-rotation-spells'
-import { loadDefaultRotationConfig } from './data/load-default-rotation-config'
-import type { CombatLogEvent, CombatSegment, Guid, RotationAnalysisResult } from './types'
-import type { CombatLogParseProgress } from './parser/combat-log-parser'
+import {parseCombatLogFile} from './workers/parse-combat-log-file'
+import {detectPlayers} from './parser/detect-players'
+import {detectCombatSegments} from './parser/detect-combat-segments'
+import {filterEventsByPlayer} from './parser/filter-events-by-player'
+import {buildPlayerTimeline} from './parser/build-player-timeline'
+import {compareRotation} from './engine/compare-rotation'
+import {analyzeRotation} from './engine/analyze-rotation'
+import {filterTimelineToKnownSpells} from './engine/known-rotation-spells'
+import {loadDefaultRotationConfig} from './data/load-default-rotation-config'
+import type {CombatLogEvent, CombatSegment, Guid, RotationAnalysisResult} from './types'
+import type {CombatLogParseProgress} from './parser/combat-log-parser'
 
 const rotationConfig = loadDefaultRotationConfig()
 
@@ -75,9 +75,9 @@ const playerTimeline = computed(() => {
     return null
   }
   const filteredEvents = filterEventsByPlayer(
-    events.value,
-    selectedPlayer.value.guid,
-    selectedSegment.value,
+      events.value,
+      selectedPlayer.value.guid,
+      selectedSegment.value,
   )
   return buildPlayerTimeline(filteredEvents, selectedPlayer.value)
 })
@@ -118,10 +118,10 @@ const analysisResult = computed(() => {
     return EMPTY_ANALYSIS_RESULT
   }
   return analyzeRotation(
-    knownSpellsTimeline.value,
-    rotationConfig,
-    selectedSegment.value.startTimestamp,
-    selectedSegment.value.endTimestamp,
+      knownSpellsTimeline.value,
+      rotationConfig,
+      selectedSegment.value.startTimestamp,
+      selectedSegment.value.endTimestamp,
   )
 })
 
@@ -176,7 +176,7 @@ async function loadFile(file: File) {
     }
   } catch (error) {
     parseError.value =
-      error instanceof Error ? error.message : 'Erreur inattendue lors du parsing du fichier.'
+        error instanceof Error ? error.message : 'Erreur inattendue lors du parsing du fichier.'
   } finally {
     isParsing.value = false
   }
@@ -209,36 +209,36 @@ function onDrop(event: DragEvent) {
     </header>
 
     <p class="instructions">
-      Devant un mannequin, active les logs (<code>/combatlog</code>), joue un cycle de rotation
-      d'1min30 (jusqu'au prochain burst), arrête de caster pendant 5s, puis désactive les logs
-      (<code>/combatlog</code>). Uploade ensuite le fichier ci-dessous — tu peux répéter
-      l'opération autant de fois que tu veux dans un même fichier.
+      Devant un mannequin, active les logs (<code>/combatlog</code>), exécute ta rotation (durée libre), arrête de
+      caster pendant 5s, puis désactive les logs (<code>/combatlog</code>) pour éviter de polluer le fichier
+      inutilement. Uploade ensuite le log ci-dessous. Tu peux répéter l'opération autant de fois que tu veux dans un
+      même fichier.
     </p>
 
     <section class="setup">
       <div
-        class="dropzone"
-        :class="{ 'dropzone--active': isDraggingFile }"
-        @dragover.prevent="isDraggingFile = true"
-        @dragleave.prevent="isDraggingFile = false"
-        @drop.prevent="onDrop"
+          class="dropzone"
+          :class="{ 'dropzone--active': isDraggingFile }"
+          @dragover.prevent="isDraggingFile = true"
+          @dragleave.prevent="isDraggingFile = false"
+          @drop.prevent="onDrop"
       >
         <span class="dropzone__icon" aria-hidden="true">⇩</span>
         <p class="dropzone__hint">Glisse-dépose ton combat log ici</p>
         <label class="dropzone__browse">
           ou choisis un fichier
-          <input type="file" accept=".txt" @change="onFileInputChange" />
+          <input type="file" accept=".txt" @change="onFileInputChange"/>
         </label>
         <p v-if="fileName" class="dropzone__filename">{{ fileName }}</p>
       </div>
 
       <div class="setup__selectors panel">
         <div v-if="!isParsing && events.length > 0" class="setup__item">
-          <PlayerSelector v-model="selectedPlayerGuid" :players="players" />
+          <PlayerSelector v-model="selectedPlayerGuid" :players="players"/>
         </div>
 
         <div v-if="selectedPlayerGuid !== null" class="setup__item">
-          <SegmentSelector v-model="selectedSegment" :segments="segments" :scores="segmentScores" />
+          <SegmentSelector v-model="selectedSegment" :segments="segments" :scores="segmentScores"/>
         </div>
 
         <p v-if="events.length === 0" class="setup__placeholder">
@@ -249,20 +249,20 @@ function onDrop(event: DragEvent) {
 
     <section v-if="isParsing" class="progress">
       <p>Analyse du fichier en cours… {{ progressPercent }}%</p>
-      <progress :value="progressPercent" max="100" />
+      <progress :value="progressPercent" max="100"/>
     </section>
 
     <p v-if="parseError" class="error" role="alert">{{ parseError }}</p>
 
     <section v-if="knownSpellsTimeline !== null" class="results">
-      <RotationReport :analysis-result="analysisResult" />
+      <RotationReport :analysis-result="analysisResult"/>
       <div class="panel panel--timeline">
         <h3 class="panel__title">Timeline du combat</h3>
         <RotationTimeline
-          :timeline="knownSpellsTimeline"
-          :comparison-results="comparisonResults"
-          :errors="analysisResult.errors"
-          :config="rotationConfig"
+            :timeline="knownSpellsTimeline"
+            :comparison-results="comparisonResults"
+            :errors="analysisResult.errors"
+            :config="rotationConfig"
         />
       </div>
     </section>
@@ -347,9 +347,8 @@ function onDrop(event: DragEvent) {
   border-radius: 10px;
   padding: 1.5rem 1.25rem;
   background: var(--ink-900);
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  transition: border-color 0.15s,
+  background 0.15s;
 }
 
 .dropzone--active {
