@@ -3,5 +3,6 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/mage-rotation-trainer/',
   plugins: [vue()],
 })
