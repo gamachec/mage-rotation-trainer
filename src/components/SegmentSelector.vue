@@ -5,7 +5,7 @@ import type { CombatSegment } from '../types'
 /**
  * Sélection du segment de combat à analyser parmi ceux détectés dans le log
  * (SPECS.md §3.5). S'il n'y a qu'un seul segment, il est sélectionné automatiquement
- * sans solliciter l'utilisateur, sur le même modèle que PlayerSelector (PLAN.md Étape 13).
+ * sans solliciter l'utilisateur, sur le même modèle que PlayerSelector.
  */
 const props = defineProps<{
   segments: CombatSegment[]

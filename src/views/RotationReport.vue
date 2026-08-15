@@ -10,9 +10,9 @@ import { getSpellName } from '../data/get-spell-name'
 import { getSpellIcon } from '../data/spell-icons'
 
 /**
- * Écran de rapport final (SPECS.md §7, PLAN.md Étape 15) : score global, axes d'amélioration
- * priorisés et détail des erreurs par type. Consomme directement la sortie de l'Étape 11
- * (`classifyRotationErrors`), pas de nouvelle passe d'analyse ici.
+ * Écran de rapport final (SPECS.md §7) : score global, axes d'amélioration
+ * priorisés et détail des erreurs par type. Consomme directement la sortie de
+ * `classifyRotationErrors`, pas de nouvelle passe d'analyse ici.
  */
 const props = defineProps<{
   analysisResult: RotationAnalysisResult

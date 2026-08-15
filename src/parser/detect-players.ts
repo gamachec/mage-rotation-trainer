@@ -11,7 +11,7 @@ function isPlayerGuid(guid: string): boolean {
  * Extrait la liste des joueurs distincts présents dans les événements parsés, dédupliqués
  * par GUID (pas par nom, pour éviter les ambiguïtés d'homonymes — SPECS.md §4). Un joueur
  * peut apparaître comme source ou cible d'événement ; les créatures/mannequins/pets sont
- * exclus via le préfixe de leur GUID (PLAN.md Étape 5).
+ * exclus via le préfixe de leur GUID.
  *
  * Résultat trié par nom pour un affichage stable dans le sélecteur (SPECS.md §3.4).
  */

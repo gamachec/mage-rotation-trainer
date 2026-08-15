@@ -1,4 +1,4 @@
-/** Segment de combat détecté par heuristique d'inactivité (PLAN.md Étape 6). */
+/** Segment de combat détecté par heuristique d'inactivité. */
 export interface CombatSegment {
   startTimestamp: number
   endTimestamp: number

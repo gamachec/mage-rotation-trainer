@@ -309,6 +309,20 @@ export function parseRotationConfig(raw: unknown): RotationConfig {
     }
   }
 
+  let openerSequence: number[] | undefined
+  if (raw.openerSequence !== undefined) {
+    if (
+      !Array.isArray(raw.openerSequence) ||
+      !raw.openerSequence.every(isPositiveIntegerSpellId)
+    ) {
+      issues.push(
+        `openerSequence : doit être un tableau d'entiers positifs (reçu ${JSON.stringify(raw.openerSequence)})`,
+      )
+    } else {
+      openerSequence = raw.openerSequence as number[]
+    }
+  }
+
   if (issues.length > 0) {
     throw new RotationConfigValidationError(issues)
   }
@@ -317,5 +331,6 @@ export function parseRotationConfig(raw: unknown): RotationConfig {
     rules,
     ...(channeledSpells !== undefined ? { channeledSpells } : {}),
     ...(resourceConsumers !== undefined ? { resourceConsumers } : {}),
+    ...(openerSequence !== undefined ? { openerSequence } : {}),
   }
 }

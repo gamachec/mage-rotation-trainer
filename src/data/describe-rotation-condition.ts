@@ -30,7 +30,7 @@ export function describeCondition(condition: RotationCondition): string {
 }
 
 /**
- * Traduction en français lisible d'un ensemble de conditions (ET logique, décision Étape 0) —
+ * Traduction en français lisible d'un ensemble de conditions (ET logique) —
  * `[]` désigne une règle par défaut sans condition ("sinon"), `null` l'absence de règle
  * applicable (config incomplète).
  */

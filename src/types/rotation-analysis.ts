@@ -1,8 +1,7 @@
 import type { Aura } from './spell'
 
 /**
- * Types d'erreurs détectés à partir de la sortie du moteur de comparaison (PLAN.md Étape 11,
- * PLAN-BURST.md Étape 3, révision post-Étape 16 pour `channel-interrupted`). "Mauvaise gestion
+ * Types d'erreurs détectés à partir de la sortie du moteur de comparaison. "Mauvaise gestion
  * de cooldown" n'est in-scope que pour les cooldowns explicitement suivis via la config
  * (`spellCooldownReady` auto-référencée), pas un système générique de cooldown pour tous les
  * sorts (voir SPECS.md §6).
@@ -28,7 +27,7 @@ export interface RotationGapError {
 
 /**
  * Cooldown de burst suivi (config `spellCooldownReady` auto-référencée) resté prêt sans être
- * recasté au-delà du seuil de tolérance — PLAN-BURST.md Étape 3. `castAt: null` si le cooldown
+ * recasté au-delà du seuil de tolérance. `castAt: null` si le cooldown
  * n'a jamais été recasté avant la fin du segment.
  */
 export interface CooldownWastedError {
@@ -42,8 +41,7 @@ export interface CooldownWastedError {
 /**
  * Canalisation (ex : Projectiles des Arcanes) interrompue avant son terme — moins de
  * `expectedTicks` vagues de dégâts observées avant le cast suivant du même sort (ou la fin
- * du segment). Révision post-Étape 16 (canalisations non modélisées jusque-là, voir
- * `ChanneledSpellConfig`).
+ * du segment). Voir `ChanneledSpellConfig`.
  */
 export interface ChannelInterruptedError {
   type: 'channel-interrupted'
@@ -61,8 +59,8 @@ export type RotationError =
  * erreurs détectées. Les casts pour lesquels aucune règle de la config ne matchait
  * (`expectedSpellId: null`, config incomplète) sont exclus du score et ne génèrent pas
  * d'erreur "wrong-spell" — ce n'est pas une erreur imputable au joueur. `wastedCooldownsCount`
- * (PLAN-BURST.md Étape 3) compte les cooldowns de burst gaspillés inclus dans `errors`, pour
- * transparence dans le rapport. `interruptedChannelsCount` (révision post-Étape 16) fait de
+ * compte les cooldowns de burst gaspillés inclus dans `errors`, pour
+ * transparence dans le rapport. `interruptedChannelsCount` fait de
  * même pour les canalisations interrompues.
  */
 export interface RotationAnalysisResult {

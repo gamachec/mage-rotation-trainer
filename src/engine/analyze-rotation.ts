@@ -12,8 +12,7 @@ import {
 import type { PlayerTimeline, RotationAnalysisResult, RotationConfig } from '../types'
 
 /**
- * Point d'orchestration de l'analyse d'une rotation (PLAN-BURST.md Étape 3, option (b),
- * révision post-Étape 16 pour les canalisations) :
+ * Point d'orchestration de l'analyse d'une rotation :
  * `compareRotation` → `correlateChannelTicks` (vagues de dégâts corrélées à leur cast canalisé)
  * → `classifyRotationErrors` (score "casts seuls", gap corrigé par la fin de canalisation)
  * → `detectWastedCooldowns` + `detectInterruptedChannels`, fusion des trois listes d'erreurs et

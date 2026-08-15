@@ -10,9 +10,9 @@ export interface CombatLogParserWorkerRequest {
 }
 
 /**
- * Messages renvoyés par le worker : progression périodique (PLAN.md Étape 4), résultat
+ * Messages renvoyés par le worker : progression périodique, résultat
  * final, ou erreur (fichier illisible). Le parsing lui-même ne lève pas d'exception
- * (PLAN.md Étape 3) — seule la lecture du fichier peut échouer ici.
+ * — seule la lecture du fichier peut échouer ici.
  */
 export type CombatLogParserWorkerResponse =
   | ({ type: 'progress' } & CombatLogParseProgress)

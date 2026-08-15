@@ -1,9 +1,9 @@
 import type { AuraType, CombatLogEvent, CombatLogEventBase, CombatLogEventType } from '../types'
 
 /**
- * Types d'événements gérés par le MVP (SPECS.md §3-6). Toute autre ligne
+ * Types d'événements gérés par l'application (SPECS.md §3-6). Toute autre ligne
  * (SPELL_CAST_FAILED, ENCOUNTER_START/END, UNIT_DIED, SPELL_PERIODIC_DAMAGE, ...)
- * est ignorée proprement plutôt qu'interprétée à moitié (PLAN.md Étape 3).
+ * est ignorée proprement plutôt qu'interprétée à moitié.
  */
 const HANDLED_EVENT_TYPES = new Set<CombatLogEventType>([
   'SPELL_CAST_SUCCESS',
@@ -18,7 +18,7 @@ const HANDLED_EVENT_TYPES = new Set<CombatLogEventType>([
 /**
  * Sépare la partie CSV d'une ligne de log en champs de premier niveau, en respectant
  * les guillemets (noms contenant virgules/apostrophes) et les parenthèses imbriquées
- * (sous-listes utilisées par certains types d'événements non gérés par le MVP).
+ * (sous-listes utilisées par certains types d'événements non gérés par l'application).
  */
 function splitFields(rest: string): string[] {
   const fields: string[] = []
@@ -95,7 +95,7 @@ const SPELL_DAMAGE_AMOUNT_INDEX = 19
 /**
  * Index, dans `rest`, des champs de suffixe propres à SPELL_ENERGIZE (mêmes 19 champs
  * d'advanced logging que SPELL_DAMAGE avant eux — vérifié empiriquement sur un vrai combat
- * log, PLAN.md Étape 18) : `amount, overEnergize, powerType, maxPower`. `overEnergize` n'est
+ * log) : `amount, overEnergize, powerType, maxPower`. `overEnergize` n'est
  * pas capturé dans `SpellEnergizeEvent` (pas de besoin identifié).
  */
 const SPELL_ENERGIZE_AMOUNT_INDEX = 19
@@ -190,9 +190,9 @@ function buildEvent(prefix: ParsedPrefix, timestamp: number): CombatLogEvent | n
 
 /**
  * Parse une ligne brute de combat log en événement typé.
- * Retourne `null` si la ligne n'est pas un type d'événement géré par le MVP, ou si
+ * Retourne `null` si la ligne n'est pas un type d'événement géré par l'application, ou si
  * elle est malformée — jamais d'exception, pour ne pas interrompre le parsing du fichier
- * sur une ligne isolée inattendue (PLAN.md Étape 3).
+ * sur une ligne isolée inattendue.
  *
  * `baseTimestampMs` est l'horodatage absolu (ms) de la première ligne du fichier ; le
  * `timestamp` de l'événement retourné est relatif à cette base (voir CombatLogEventBase).
@@ -229,7 +229,7 @@ function parseBaseTimestampMs(firstLine: string): number | null {
   return parseAbsoluteTimestampMs(month, day, year, hour, minute, second, fraction)
 }
 
-/** Avancement du parsing d'un fichier combat log complet (PLAN.md Étape 4). */
+/** Avancement du parsing d'un fichier combat log complet. */
 export interface CombatLogParseProgress {
   processedLines: number
   totalLines: number
@@ -240,10 +240,10 @@ const PROGRESS_REPORT_INTERVAL = 500
 
 /**
  * Parse le texte brut d'un fichier combat log complet en liste d'événements typés.
- * Les lignes d'un type d'événement non géré par le MVP, ou malformées, sont ignorées
- * silencieusement plutôt que d'interrompre le parsing (PLAN.md Étape 3).
+ * Les lignes d'un type d'événement non géré par l'application, ou malformées, sont ignorées
+ * silencieusement plutôt que d'interrompre le parsing.
  *
- * `onProgress`, si fourni, est appelé périodiquement pendant le parsing (PLAN.md Étape 4) —
+ * `onProgress`, si fourni, est appelé périodiquement pendant le parsing —
  * utilisé par le Web Worker pour faire remonter une progression à l'UI sur les gros fichiers.
  */
 export function parseCombatLog(

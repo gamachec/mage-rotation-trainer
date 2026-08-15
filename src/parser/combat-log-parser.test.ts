@@ -3,7 +3,7 @@ import { parseCombatLog, parseCombatLogLine } from './combat-log-parser'
 
 /**
  * Lignes extraites telles quelles d'un vrai combat log retail (12.1.0, advanced logging
- * activé), généré par l'utilisateur sur un mannequin d'entraînement (PLAN.md Étape 3).
+ * activé), généré par l'utilisateur sur un mannequin d'entraînement.
  */
 const REAL_LINES = {
   castSuccess: `8/15/2026 11:27:15.9822  SPELL_CAST_SUCCESS,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Creature-0-3894-0-85410-243167-00007FC38E,"Mannequin d'entraînement de donjonage",0x10a28,0x80000000,30451,"Déflagration des Arcanes",0x40,Player-1127-0AC1C10B,0000000000000000,576620,576620,229,2481,541,592,152,0,0,331065,331065,6875,8196.63,-4344.20,2393,2.8493,293`,
@@ -92,7 +92,7 @@ describe('parseCombatLogLine', () => {
     })
   })
 
-  it("ignore un type d'événement non géré par le MVP (SPELL_PERIODIC_DAMAGE)", () => {
+  it("ignore un type d'événement non géré par l'application (SPELL_PERIODIC_DAMAGE)", () => {
     const event = parseCombatLogLine(REAL_LINES.unhandled, ARBITRARY_BASE_MS)
     expect(event).toBeNull()
   })
@@ -122,7 +122,7 @@ describe('parseCombatLog', () => {
     expect(events[1]).toMatchObject({ type: 'SPELL_DAMAGE', timestamp: 8103 })
   })
 
-  it('filtre les lignes non gérées et garde uniquement les événements du MVP', () => {
+  it('filtre les lignes non gérées et garde uniquement les événements gérés', () => {
     const text = [
       REAL_LINES.header,
       REAL_LINES.unhandled,

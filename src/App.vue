@@ -11,6 +11,7 @@ import { filterEventsByPlayer } from './parser/filter-events-by-player'
 import { buildPlayerTimeline } from './parser/build-player-timeline'
 import { compareRotation } from './engine/compare-rotation'
 import { analyzeRotation } from './engine/analyze-rotation'
+import { filterTimelineToKnownSpells } from './engine/known-rotation-spells'
 import { loadDefaultRotationConfig } from './data/load-default-rotation-config'
 import type { CombatLogEvent, CombatSegment, Guid, RotationAnalysisResult } from './types'
 import type { CombatLogParseProgress } from './parser/combat-log-parser'
@@ -18,8 +19,8 @@ import type { CombatLogParseProgress } from './parser/combat-log-parser'
 const rotationConfig = loadDefaultRotationConfig()
 
 /**
- * Seuil d'inactivité utilisé pour la détection des segments de combat (PLAN.md Étape 6/13,
- * révisé) : 5s sans nouveau sort casté par le joueur (voir `detectCombatSegments`).
+ * Seuil d'inactivité utilisé pour la détection des segments de combat : 5s sans nouveau
+ * sort casté par le joueur (voir `detectCombatSegments`).
  */
 const INACTIVITY_THRESHOLD_MS = 5_000
 
@@ -59,11 +60,25 @@ const playerTimeline = computed(() => {
   return buildPlayerTimeline(filteredEvents, selectedPlayer.value)
 })
 
-const comparisonResults = computed(() => {
+/**
+ * Timeline réduite aux seuls sorts connus de la config de rotation (voir
+ * `filterTimelineToKnownSpells`) : les casts hors rotation (soin, défensif, mobilité...) sont
+ * valides pour le joueur mais ne doivent pas être jugés par le moteur ni s'afficher dans la
+ * timeline/le rapport. Source unique consommée par `comparisonResults`, `analysisResult` et le
+ * composant `RotationTimeline`, pour rester cohérente entre l'affichage et le score.
+ */
+const knownSpellsTimeline = computed(() => {
   if (playerTimeline.value === null) {
+    return null
+  }
+  return filterTimelineToKnownSpells(playerTimeline.value, rotationConfig)
+})
+
+const comparisonResults = computed(() => {
+  if (knownSpellsTimeline.value === null) {
     return []
   }
-  return compareRotation(playerTimeline.value, rotationConfig)
+  return compareRotation(knownSpellsTimeline.value, rotationConfig)
 })
 
 const EMPTY_ANALYSIS_RESULT: RotationAnalysisResult = {
@@ -77,11 +92,11 @@ const EMPTY_ANALYSIS_RESULT: RotationAnalysisResult = {
 }
 
 const analysisResult = computed(() => {
-  if (playerTimeline.value === null || selectedSegment.value === null) {
+  if (knownSpellsTimeline.value === null || selectedSegment.value === null) {
     return EMPTY_ANALYSIS_RESULT
   }
   return analyzeRotation(
-    playerTimeline.value,
+    knownSpellsTimeline.value,
     rotationConfig,
     selectedSegment.value.startTimestamp,
     selectedSegment.value.endTimestamp,
@@ -169,12 +184,12 @@ function onDrop(event: DragEvent) {
       <SegmentSelector v-model="selectedSegment" :segments="segments" />
     </section>
 
-    <section v-if="playerTimeline !== null" class="results">
+    <section v-if="knownSpellsTimeline !== null" class="results">
       <RotationReport :analysis-result="analysisResult" />
       <div class="panel panel--timeline">
         <h3 class="panel__title">Timeline du combat</h3>
         <RotationTimeline
-          :timeline="playerTimeline"
+          :timeline="knownSpellsTimeline"
           :comparison-results="comparisonResults"
           :errors="analysisResult.errors"
           :config="rotationConfig"

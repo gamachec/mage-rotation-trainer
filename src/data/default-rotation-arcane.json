@@ -57,5 +57,6 @@
     }
   ],
   "channeledSpells": [{ "castSpellId": 5143, "tickSpellId": 7268, "expectedTicks": 7 }],
-  "resourceConsumers": [{ "powerType": 16, "spellIds": [44425] }]
+  "resourceConsumers": [{ "powerType": 16, "spellIds": [44425] }],
+  "openerSequence": [365350, 5143, 44425, 321507]
 }

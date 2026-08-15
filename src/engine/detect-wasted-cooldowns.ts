@@ -2,7 +2,7 @@ import type { CooldownWastedError, PlayerTimeline, RotationConfig } from '../typ
 
 /**
  * Seuil au-delà duquel un cooldown de burst resté prêt sans être recasté est considéré comme
- * gaspillé. Décision BURST-0.5 (PLAN-BURST.md).
+ * gaspillé.
  */
 export const DEFAULT_COOLDOWN_WASTED_THRESHOLD_MS = 2500
 
@@ -10,11 +10,10 @@ type TrackedCooldown = { spellId: number; cooldownMs: number }
 
 /**
  * Un cooldown de burst « suivi » est une règle dont une condition `spellCooldownReady` porte
- * sur le même `spellId` que la règle elle-même (auto-référence) — décision BURST-3.1
- * (PLAN-BURST.md) : évite un champ de config dédié, reste générique. Dédupliqué par
- * `spellId` : plusieurs règles peuvent cibler le même sort pour exprimer un "OU" (même
- * `spellId`, conditions différentes — PLAN-BURST.md Étape 1), le cooldown ne doit être
- * suivi qu'une seule fois.
+ * sur le même `spellId` que la règle elle-même (auto-référence) : évite un champ de config
+ * dédié, reste générique. Dédupliqué par `spellId` : plusieurs règles peuvent cibler le même
+ * sort pour exprimer un "OU" (même `spellId`, conditions différentes), le cooldown ne doit
+ * être suivi qu'une seule fois.
  */
 function findTrackedCooldowns(config: RotationConfig): TrackedCooldown[] {
   const tracked = new Map<number, TrackedCooldown>()
@@ -29,7 +28,7 @@ function findTrackedCooldowns(config: RotationConfig): TrackedCooldown[] {
 }
 
 /**
- * Détecte les cooldowns de burst suivis (PLAN-BURST.md Étape 3) prêts-et-non-utilisés au-delà
+ * Détecte les cooldowns de burst suivis prêts-et-non-utilisés au-delà
  * de `wastedThresholdMs`, sur la timeline d'un joueur. Le CD est supposé disponible dès le
  * début du segment (`segmentStartTimestamp`) puis redevient prêt `cooldownMs` après chaque
  * cast réel. `segmentStartTimestamp` doit être passé explicitement (pas de `0` en dur) : les

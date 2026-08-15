@@ -7,7 +7,7 @@ import type { CombatLogParseProgress } from '../parser/combat-log-parser'
 
 /**
  * Parse un fichier combat log dans un Web Worker dédié, pour ne pas geler l'UI sur les
- * gros fichiers (PLAN.md Étape 4 / SPECS.md §8). Le worker est créé pour cet appel et
+ * gros fichiers (SPECS.md §8). Le worker est créé pour cet appel et
  * terminé une fois le résultat (ou l'erreur) reçu.
  */
 export function parseCombatLogFile(

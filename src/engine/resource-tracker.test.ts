@@ -61,6 +61,15 @@ describe('resolveResourceValueBefore', () => {
     expect(value).toBe(0)
   })
 
+  it('applique la remise à zéro même si le cast consommateur partage le timestamp du cast évalué (résolution limitée d’un vrai combat log — `casts` est déjà limité aux casts antérieurs par l’appelant)', () => {
+    const gains: TimelineResourceGain[] = [
+      { timestamp: 100, powerType: ARCANE_CHARGES, amount: 3, maxPower: 4 },
+    ]
+    const casts: TimelineCast[] = [{ timestamp: 1000, spell: { id: BARRAGE, name: 'Barrage' } }]
+    const value = resolveResourceValueBefore(gains, casts, RESOURCE_CONSUMERS, ARCANE_CHARGES, 1000)
+    expect(value).toBe(0)
+  })
+
   it("ignore les casts d'un sort non déclaré consommateur pour ce powerType", () => {
     const gains: TimelineResourceGain[] = [
       { timestamp: 100, powerType: ARCANE_CHARGES, amount: 2, maxPower: 4 },

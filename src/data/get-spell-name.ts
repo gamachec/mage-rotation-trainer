@@ -1,9 +1,9 @@
 import spellDatabase from './spell-database.json'
 
 /**
- * Table de correspondance sort/aura ID ↔ nom (SPECS.md §5, PLAN.md Étape 12), maintenue à la
+ * Table de correspondance sort/aura ID ↔ nom (SPECS.md §5), maintenue à la
  * main. Sert principalement à nommer les sorts *référencés par la config de rotation*
- * (Étape 9) quand ils n'apparaissent pas dans le log en cours d'analyse — le parser (Étape 3)
+ * quand ils n'apparaissent pas dans le log en cours d'analyse — le parser
  * extrait déjà `spellName` directement depuis les événements réels du log.
  */
 const SPELL_NAMES: Record<string, string> = spellDatabase

@@ -7,19 +7,19 @@ import type {
 
 /**
  * Seuil au-delà duquel un délai entre deux casts successifs est considéré comme un temps
- * mort dans la rotation. Constante fixe au MVP (décision actée avec l'utilisateur, PLAN.md
- * Étape 11) — à calibrer/exposer si besoin après un test sur un vrai log (PLAN.md Étape 16),
- * sur le même principe que le seuil d'inactivité de `detectCombatSegments` (Étape 6).
+ * mort dans la rotation. Constante fixe (décision actée avec l'utilisateur) — à calibrer/exposer
+ * si besoin après un test sur un vrai log, sur le même principe que le seuil d'inactivité de
+ * `detectCombatSegments`.
  */
 export const DEFAULT_ROTATION_GAP_THRESHOLD_MS = 3000
 
 /**
- * Classifie les erreurs de rotation (SPECS.md §6, PLAN.md Étape 11) à partir de la sortie du
- * moteur de comparaison (Étape 10), et calcule le score global de conformité. Les casts sans
+ * Classifie les erreurs de rotation (SPECS.md §6) à partir de la sortie du
+ * moteur de comparaison, et calcule le score global de conformité. Les casts sans
  * sort attendu (`expectedSpellId: null`, config incomplète) sont exclus du score et ne
  * génèrent pas d'erreur "wrong-spell".
  *
- * `channelEndTimestamps` (révision post-Étape 16, optionnel, calculé par `analyzeRotation` via
+ * `channelEndTimestamps` (optionnel, calculé par `analyzeRotation` via
  * `correlateChannelTicks`) : même ordre/longueur que `results`, `null` sauf pour les casts de
  * sorts canalisés — indique alors le timestamp de la dernière vague corrélée. Quand présent, le
  * calcul du gap utilise ce timestamp comme fin d'occupation du cast précédent au lieu de son

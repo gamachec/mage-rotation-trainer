@@ -1,8 +1,8 @@
 import type { CombatLogEvent, CombatSegment, Guid } from '../types'
 
 /**
- * Détecte les segments de combat du joueur sélectionné par heuristique d'inactivité
- * (PLAN.md Étape 0/6, révisé) : un segment démarre au premier sort casté par le joueur
+ * Détecte les segments de combat du joueur sélectionné par heuristique d'inactivité :
+ * un segment démarre au premier sort casté par le joueur
  * (`SPELL_CAST_SUCCESS` dont il est la source — un log de combat n'a pas d'événement
  * d'entrée/sortie de combat exploitable) et se termine dès qu'aucun nouveau sort casté
  * par le joueur ne survient pendant `inactivityThresholdMs`. Les auras reçues, dégâts

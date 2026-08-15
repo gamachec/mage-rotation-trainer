@@ -11,7 +11,7 @@ import type {
 /**
  * Nombre de charges portées par un changement d'aura selon son type d'événement.
  * Les stacks des événements `_DOSE` sont des valeurs absolues (pas des deltas —
- * confirmé sur le vrai log, PLAN.md Étape 3) : il suffit de les reporter telles quelles.
+ * confirmé sur le vrai log) : il suffit de les reporter telles quelles.
  * `SPELL_AURA_APPLIED`/`SPELL_AURA_REMOVED` (sans `_DOSE`) n'ont pas de champ `stacks` :
  * une application initiale vaut 1 charge, un retrait ramène à 0.
  */
@@ -31,8 +31,8 @@ function resolveStacks(event: CombatLogEvent): number {
 
 /**
  * Reconstruit la timeline chronologique d'un joueur à partir de ses événements filtrés
- * (sortie de `filterEventsByPlayer`, PLAN.md Étape 7) : les sorts castés et les
- * changements d'aura qui l'affectent. Simulation basique (décision Étape 0) — reflète
+ * (sortie de `filterEventsByPlayer`) : les sorts castés et les
+ * changements d'aura qui l'affectent. Simulation basique — reflète
  * directement les événements observés, sans état "attendu" intermédiaire.
  */
 export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): PlayerTimeline {
@@ -41,12 +41,13 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
   const damageTicks: TimelineDamageTick[] = []
   const resourceGains: TimelineResourceGain[] = []
 
-  for (const event of events) {
+  events.forEach((event, sequence) => {
     switch (event.type) {
       case 'SPELL_CAST_SUCCESS':
         if (event.sourceGuid === player.guid) {
           casts.push({
             timestamp: event.timestamp,
+            sequence,
             spell: { id: event.spellId, name: event.spellName },
           })
         }
@@ -58,6 +59,7 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
         if (event.destGuid === player.guid) {
           auraChanges.push({
             timestamp: event.timestamp,
+            sequence,
             aura: {
               spellId: event.spellId,
               name: event.spellName,
@@ -83,7 +85,7 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
         }
         break
     }
-  }
+  })
 
   return {
     playerGuid: player.guid,

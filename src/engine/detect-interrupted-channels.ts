@@ -2,7 +2,7 @@ import { correlateChannelTicks } from './channeled-spells'
 import type { ChannelInterruptedError, PlayerTimeline, RotationConfig } from '../types'
 
 /**
- * Détecte les canalisations interrompues (révision post-Étape 16) : un cast d'un sort déclaré
+ * Détecte les canalisations interrompues : un cast d'un sort déclaré
  * canalisé dans `config.channeledSpells` dont le nombre de vagues corrélées (`channeled-spells.ts`)
  * est inférieur à `expectedTicks`. `timeline.damageTicks` étant déjà borné au segment analysé
  * (filtré en amont par `filterEventsByPlayer`), pas besoin de `segmentEndTimestamp` explicite ici.

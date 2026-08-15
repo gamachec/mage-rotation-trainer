@@ -13,14 +13,13 @@ import { getPowerTypeName } from '../data/power-type-name'
 import { getReferencedAuraSpellIds } from '../engine/rotation-config-auras'
 
 /**
- * Visualisation de la timeline du combat (SPECS.md §7, PLAN.md Étape 14, refonte Étape 17) :
- * une ligne par cast réel, avec l'état du personnage (auras, ressources) reconstruit à cet
- * instant en colonne droite — plutôt qu'une ligne séparée par changement d'aura (décision
- * utilisateur Étape 17 : les changements d'aura sont fusionnés dans l'état affiché au cast
- * suivant). Fusionnée avec deux autres sources déjà produites par `/engine` en une seule liste
- * chronologique :
- * - `timeline.casts` (Étape 8) recoupé avec `comparisonResults` (Étape 10, même ordre/longueur
- *   que `timeline.casts`) pour l'état du personnage, la justesse du cast, et la règle qui
+ * Visualisation de la timeline du combat (SPECS.md §7) : une ligne par cast réel, avec l'état
+ * du personnage (auras, ressources) reconstruit à cet instant en colonne droite — plutôt
+ * qu'une ligne séparée par changement d'aura (les changements d'aura sont fusionnés dans
+ * l'état affiché au cast suivant). Fusionnée avec deux autres sources déjà produites par
+ * `/engine` en une seule liste chronologique :
+ * - `timeline.casts` recoupé avec `comparisonResults` (même ordre/longueur que
+ *   `timeline.casts`) pour l'état du personnage, la justesse du cast, et la règle qui
  *   justifiait le sort attendu en cas d'erreur.
  * - `errors` filtré sur `rotation-gap`/`cooldown-wasted`/`channel-interrupted` : ce ne sont pas
  *   des casts, ils restent des marqueurs pleine largeur sur la même ligne de temps.

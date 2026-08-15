@@ -1,5 +1,5 @@
 /**
- * Icônes de sorts (SPECS.md §8, PLAN.md Étape 17) : embarquées localement dans le repo
+ * Icônes de sorts (SPECS.md §8) : embarquées localement dans le repo
  * (`src/assets/spell-icons/<spellId>.jpg`, sourcées une fois depuis Wowhead/Zamimg) plutôt que
  * chargées depuis un CDN externe à l'exécution — l'app reste 100% autonome au runtime.
  * `import.meta.glob` avec `eager: true` inline les URLs résolues par Vite au build, pas de

@@ -67,11 +67,11 @@ export interface SpellEnergizeEvent extends CombatLogEventBase, SpellEventFields
 }
 
 /**
- * Sous-ensemble d'événements géré par le MVP (SPECS.md §3-6) : casts réussis,
+ * Sous-ensemble d'événements géré par l'application (SPECS.md §3-6) : casts réussis,
  * auras/stacks, dégâts, gains de ressource. Les autres types d'événements du log brut
  * (SPELL_CAST_FAILED, ENCOUNTER_START/END, UNIT_DIED, etc.) ne sont pas modélisés pour
- * l'instant — la détection des segments de combat s'appuie sur une heuristique d'inactivité
- * (PLAN.md Étape 0/6), pas sur des marqueurs d'encounter.
+ * l'instant — la détection des segments de combat s'appuie sur une heuristique d'inactivité,
+ * pas sur des marqueurs d'encounter.
  */
 export type CombatLogEvent =
   | SpellCastSuccessEvent

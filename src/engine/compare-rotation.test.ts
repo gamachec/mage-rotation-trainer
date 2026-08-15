@@ -62,6 +62,42 @@ describe('resolveExpectedSpell', () => {
 
     expect(resolveExpectedSpell(configSansDefaut, new Map())).toBeNull()
   })
+
+  it('openerCastIndex prioritaire sur les règles tant que la séquence n’est pas épuisée', () => {
+    const configAvecOpener: RotationConfig = {
+      ...CONFIG,
+      openerSequence: [ARCANE_MISSILES, ARCANE_BARRAGE],
+    }
+    const activeAuras = new Map<number, Aura>([
+      [
+        ARCANE_CHARGES,
+        { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+      ],
+    ])
+
+    // Sans opener, la règle "≥ 4 charges" attendrait Barrage — l'opener impose Missiles en 1er.
+    expect(resolveExpectedSpell(configAvecOpener, activeAuras, [], Infinity, [], 0)).toBe(
+      ARCANE_MISSILES,
+    )
+    expect(resolveExpectedSpell(configAvecOpener, activeAuras, [], Infinity, [], 1)).toBe(
+      ARCANE_BARRAGE,
+    )
+  })
+
+  it('openerCastIndex retombe sur les règles classiques une fois la séquence épuisée', () => {
+    const configAvecOpener: RotationConfig = {
+      ...CONFIG,
+      openerSequence: [ARCANE_MISSILES],
+    }
+
+    expect(resolveExpectedSpell(configAvecOpener, new Map(), [], Infinity, [], 1)).toBe(
+      ARCANE_BLAST,
+    )
+  })
+
+  it('openerCastIndex sans openerSequence en config se comporte comme sans opener', () => {
+    expect(resolveExpectedSpell(CONFIG, new Map(), [], Infinity, [], 0)).toBe(ARCANE_BLAST)
+  })
 })
 
 describe('compareRotation', () => {
@@ -166,6 +202,84 @@ describe('compareRotation', () => {
       { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
     ])
     expect(result.expectedSpellId).toBe(ARCANE_BARRAGE)
+  })
+
+  it("prend en compte un retrait d'aura même à quelques ms d'un cast très rapproché (buff consommé par le cast précédent, pas par celui évalué)", () => {
+    const timeline = timelineFrom(
+      [
+        { timestamp: 1000, spell: { id: ARCANE_MISSILES, name: 'Projectiles des Arcanes' } },
+        { timestamp: 1005, spell: { id: ARCANE_BARRAGE, name: 'Rafale des Arcanes' } },
+      ],
+      [
+        {
+          timestamp: 500,
+          aura: { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+        },
+        {
+          timestamp: 500,
+          aura: { spellId: CLEARCASTING, name: 'Idées claires', type: 'BUFF', stacks: 1 },
+        },
+        {
+          timestamp: 1003,
+          aura: { spellId: CLEARCASTING, name: 'Idées claires', type: 'BUFF', stacks: 0 },
+        },
+      ],
+    )
+
+    const [, secondResult] = compareRotation(timeline, CONFIG)
+
+    expect(secondResult.activeAuras).toEqual([
+      { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+    ])
+    expect(secondResult.expectedSpellId).toBe(ARCANE_BARRAGE)
+  })
+
+  it("détecte le retrait d'une aura consommée par le cast précédent même si le timestamp logué est identique à celui du cast suivant (résolution limitée d'un vrai combat log — utilise `sequence`, pas seulement `timestamp`)", () => {
+    const timeline: PlayerTimeline = {
+      playerGuid: 'Player-1-AAAA',
+      playerName: 'Someone',
+      casts: [
+        {
+          timestamp: 1000,
+          sequence: 10,
+          spell: { id: ARCANE_MISSILES, name: 'Projectiles des Arcanes' },
+        },
+        {
+          timestamp: 1005,
+          sequence: 13,
+          spell: { id: ARCANE_BARRAGE, name: 'Rafale des Arcanes' },
+        },
+      ],
+      auraChanges: [
+        {
+          timestamp: 500,
+          sequence: 5,
+          aura: { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+        },
+        {
+          timestamp: 500,
+          sequence: 6,
+          aura: { spellId: CLEARCASTING, name: 'Idées claires', type: 'BUFF', stacks: 1 },
+        },
+        // Retrait consommé par le cast de Projectiles (sequence 10) mais logué au même
+        // timestamp (1005) que le SPELL_CAST_SUCCESS du cast suivant (Rafale, sequence 13) —
+        // scénario observé sur un vrai log.
+        {
+          timestamp: 1005,
+          sequence: 12,
+          aura: { spellId: CLEARCASTING, name: 'Idées claires', type: 'BUFF', stacks: 0 },
+        },
+      ],
+      damageTicks: [],
+      resourceGains: [],
+    }
+
+    const [, secondResult] = compareRotation(timeline, CONFIG)
+
+    expect(secondResult.activeAuras).toEqual([
+      { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+    ])
+    expect(secondResult.expectedSpellId).toBe(ARCANE_BARRAGE)
   })
 
   it('reconstruit l’état de charges au fil de plusieurs changements successifs (dernière valeur connue)', () => {
@@ -339,6 +453,110 @@ describe('conditions spellCooldownReady et previousCastIs', () => {
 
     expect(result.expectedSpellId).toBe(ARCANE_BLAST)
     expect(result.isCorrect).toBe(false)
+  })
+})
+
+describe('openerSequence', () => {
+  const ARCANE_SURGE = 365350
+  const TOUCH_OF_THE_MAGI = 321507
+
+  // Opener strict, indépendant des règles classiques
+  // (qui, elles, gateraient Barrage par les charges arcaniques).
+  const OPENER_CONFIG: RotationConfig = {
+    rules: [
+      {
+        spellId: ARCANE_SURGE,
+        conditions: [{ type: 'spellCooldownReady', spellId: ARCANE_SURGE, cooldownMs: 90000 }],
+      },
+      {
+        spellId: ARCANE_BARRAGE,
+        conditions: [
+          { type: 'auraStacks', spellId: ARCANE_CHARGES, operator: '>=', value: 4 },
+          { type: 'auraActive', spellId: CLEARCASTING, active: false },
+        ],
+      },
+      {
+        spellId: ARCANE_MISSILES,
+        conditions: [{ type: 'auraActive', spellId: CLEARCASTING, active: true }],
+      },
+      { spellId: ARCANE_BLAST, conditions: [] },
+    ],
+    openerSequence: [ARCANE_SURGE, ARCANE_MISSILES, ARCANE_BARRAGE, TOUCH_OF_THE_MAGI],
+  }
+
+  it('impose la séquence opener quel que soit l’état simulé (pas de gate charges sur Barrage)', () => {
+    const timeline = timelineFrom(
+      [
+        { timestamp: 1000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } },
+        { timestamp: 2000, spell: { id: ARCANE_MISSILES, name: 'Projectiles des Arcanes' } },
+        { timestamp: 3000, spell: { id: ARCANE_BARRAGE, name: 'Rafale des Arcanes' } },
+        { timestamp: 4000, spell: { id: TOUCH_OF_THE_MAGI, name: 'Toucher des magi' } },
+      ],
+      [],
+    )
+
+    const results = compareRotation(timeline, OPENER_CONFIG)
+
+    expect(results.map((r) => r.expectedSpellId)).toEqual([
+      ARCANE_SURGE,
+      ARCANE_MISSILES,
+      ARCANE_BARRAGE,
+      TOUCH_OF_THE_MAGI,
+    ])
+    expect(results.every((r) => r.isCorrect)).toBe(true)
+  })
+
+  it('expectedSpellRuleConditions est null pour un cast couvert par l’opener', () => {
+    const timeline = timelineFrom(
+      [{ timestamp: 1000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } }],
+      [],
+    )
+
+    const [result] = compareRotation(timeline, OPENER_CONFIG)
+
+    expect(result.expectedSpellRuleConditions).toBeNull()
+  })
+
+  it('une étape ratée reste une fenêtre positionnelle (pas de pointeur bloquant) : l’écart ne dure jamais plus de openerSequence.length casts', () => {
+    const timeline = timelineFrom(
+      [
+        { timestamp: 1000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } },
+        // Le joueur saute Projectiles et caste Barrage directement (erreur).
+        { timestamp: 2000, spell: { id: ARCANE_BARRAGE, name: 'Rafale des Arcanes' } },
+        // Ce cast est jugé contre la position 2 de l'opener (Barrage), pas contre l'étape
+        // ratée — le décalage n'est pas rattrapé, mais il ne se propage pas indéfiniment.
+        { timestamp: 3000, spell: { id: TOUCH_OF_THE_MAGI, name: 'Toucher des magi' } },
+        { timestamp: 4000, spell: { id: ARCANE_MISSILES, name: 'Projectiles des Arcanes' } },
+        // 5e cast connu : l'opener (longueur 4) est épuisé, on repasse aux règles classiques
+        // ("sinon" par défaut ici, aucune aura/cooldown ne matchant les règles précédentes).
+        { timestamp: 5000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } },
+      ],
+      [],
+    )
+
+    const results = compareRotation(timeline, OPENER_CONFIG)
+
+    expect(results.map((r) => r.expectedSpellId)).toEqual([
+      ARCANE_SURGE,
+      ARCANE_MISSILES,
+      ARCANE_BARRAGE,
+      TOUCH_OF_THE_MAGI,
+      ARCANE_BLAST,
+    ])
+    expect(results.map((r) => r.isCorrect)).toEqual([true, false, false, false, true])
+  })
+
+  it('sans openerSequence en config, compareRotation se comporte comme avant (règles classiques dès le 1er cast)', () => {
+    const configSansOpener: RotationConfig = { rules: OPENER_CONFIG.rules }
+    const timeline = timelineFrom(
+      [{ timestamp: 1000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } }],
+      [],
+    )
+
+    const [result] = compareRotation(timeline, configSansOpener)
+
+    expect(result.expectedSpellId).toBe(ARCANE_SURGE)
+    expect(result.expectedSpellRuleConditions).toEqual(configSansOpener.rules[0].conditions)
   })
 })
 

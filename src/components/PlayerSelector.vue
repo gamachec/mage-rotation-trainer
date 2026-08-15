@@ -5,7 +5,7 @@ import type { Guid, Player } from '../types'
 /**
  * Sélection du personnage à analyser parmi les joueurs détectés dans le log (SPECS.md §3.4).
  * S'il n'y a qu'un seul joueur, il est sélectionné automatiquement sans solliciter
- * l'utilisateur (PLAN.md Étape 5) — le prompt ne s'affiche que s'il y a un choix à faire.
+ * l'utilisateur — le prompt ne s'affiche que s'il y a un choix à faire.
  */
 const props = defineProps<{
   players: Player[]

@@ -233,6 +233,34 @@ describe('parseRotationConfig', () => {
     }
   })
 
+  it('parse une config valide avec openerSequence', () => {
+    const config = parseRotationConfig({
+      rules: [{ spellId: 5143, conditions: [] }],
+      openerSequence: [365350, 5143, 44425, 321507],
+    })
+
+    expect(config.openerSequence).toEqual([365350, 5143, 44425, 321507])
+  })
+
+  it('omet openerSequence si absent de la config brute', () => {
+    const config = parseRotationConfig({ rules: [{ spellId: 5143, conditions: [] }] })
+
+    expect(config.openerSequence).toBeUndefined()
+  })
+
+  it('rejette openerSequence si ce n’est pas un tableau d’entiers positifs', () => {
+    try {
+      parseRotationConfig({
+        rules: [{ spellId: 5143, conditions: [] }],
+        openerSequence: [365350, -1, 'x'],
+      })
+      expect.fail('devait lever une exception')
+    } catch (error) {
+      expect(error).toBeInstanceOf(RotationConfigValidationError)
+      expect((error as RotationConfigValidationError).issues[0]).toContain('openerSequence')
+    }
+  })
+
   it('collecte tous les problèmes trouvés plutôt que de s’arrêter au premier', () => {
     try {
       parseRotationConfig({
