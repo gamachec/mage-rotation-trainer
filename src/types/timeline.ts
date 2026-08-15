@@ -12,9 +12,17 @@ import type { Aura, Guid, Spell } from './spell'
  * comparaison retombe sur `timestamp` (comportement historique, insensible aux égalités).
  */
 
-/** Un sort casté avec succès par le joueur, à un instant donné. */
+/**
+ * Un sort casté avec succès par le joueur, à un instant donné.
+ * `startTimestamp` : timestamp du `SPELL_CAST_START` correspondant, s'il existe (sort à temps
+ * de cast non-instantané) — sinon absent (sort instantané, `timestamp` seul fait foi). Distinct
+ * de `timestamp` (qui reste celui de `SPELL_CAST_SUCCESS`, la fin du cast) pour ne pas compter
+ * la durée d'un cast variable (ex : Trait prismatique, plus court à charges arcaniques élevées)
+ * comme un temps mort dans la rotation (voir `classifyRotationErrors`).
+ */
 export interface TimelineCast {
   timestamp: number
+  startTimestamp?: number
   sequence?: number
   spell: Spell
 }

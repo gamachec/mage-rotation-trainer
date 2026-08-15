@@ -15,9 +15,13 @@ import type { RotationCondition } from './rotation-config'
  * personnage observée dans la timeline (`TimelineResourceGain.powerType`) juste avant ce cast
  * — pour l'affichage de l'état du personnage (ex : charges arcaniques) dans le rapport,
  * générique à toute ressource plutôt que spécifique à Arcane.
+ * `startTimestamp` : reprise de `TimelineCast.startTimestamp` (timestamp du début réel du cast,
+ * pour les sorts à temps de cast non-instantané) — utilisé par `classifyRotationErrors` pour ne
+ * pas compter la durée d'un cast comme un temps mort de rotation.
  */
 export interface RotationComparisonResult {
   timestamp: number
+  startTimestamp?: number
   actualSpellId: number
   expectedSpellId: number | null
   expectedSpellRuleConditions: RotationCondition[] | null

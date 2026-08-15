@@ -171,6 +171,52 @@ describe('buildPlayerTimeline', () => {
     expect(timeline.resourceGains).toEqual([])
   })
 
+  it('renseigne startTimestamp sur un cast précédé de son SPELL_CAST_START (temps de cast non-instantané)', () => {
+    const events: CombatLogEvent[] = [
+      buildEvent({ type: 'SPELL_CAST_START', timestamp: 1000, spellId: 1295924 }),
+      buildEvent({ type: 'SPELL_CAST_SUCCESS', timestamp: 3000, spellId: 1295924 }),
+    ]
+
+    const timeline = buildPlayerTimeline(events, { guid: 'Player-1-AAAA', name: 'Someone' })
+
+    expect(timeline.casts).toEqual([
+      {
+        timestamp: 3000,
+        startTimestamp: 1000,
+        sequence: 1,
+        spell: { id: 1295924, name: 'Spell' },
+      },
+    ])
+  })
+
+  it("n'ajoute pas de startTimestamp pour un cast instantané (aucun SPELL_CAST_START correspondant)", () => {
+    const events: CombatLogEvent[] = [
+      buildEvent({ type: 'SPELL_CAST_SUCCESS', timestamp: 3000, spellId: 44425 }),
+    ]
+
+    const timeline = buildPlayerTimeline(events, { guid: 'Player-1-AAAA', name: 'Someone' })
+
+    expect(timeline.casts).toEqual([
+      { timestamp: 3000, sequence: 0, spell: { id: 44425, name: 'Spell' } },
+    ])
+    expect(timeline.casts[0]).not.toHaveProperty('startTimestamp')
+  })
+
+  it("un SPELL_CAST_START d'un sort différent (cast interrompu puis recast instantané) ne pollue pas le cast suivant", () => {
+    const events: CombatLogEvent[] = [
+      buildEvent({ type: 'SPELL_CAST_START', timestamp: 1000, spellId: 1295924 }),
+      buildEvent({ type: 'SPELL_CAST_START', timestamp: 1500, spellId: 5143 }),
+      buildEvent({ type: 'SPELL_CAST_SUCCESS', timestamp: 3000, spellId: 44425 }),
+    ]
+
+    const timeline = buildPlayerTimeline(events, { guid: 'Player-1-AAAA', name: 'Someone' })
+
+    expect(timeline.casts).toEqual([
+      { timestamp: 3000, sequence: 2, spell: { id: 44425, name: 'Spell' } },
+    ])
+    expect(timeline.casts[0]).not.toHaveProperty('startTimestamp')
+  })
+
   it('retourne une timeline vide sans événement', () => {
     const timeline = buildPlayerTimeline([], { guid: 'Player-1-AAAA', name: 'Someone' })
 

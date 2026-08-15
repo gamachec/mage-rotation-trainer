@@ -265,6 +265,7 @@ export function compareRotation(
 
     return {
       timestamp: cast.timestamp,
+      ...(cast.startTimestamp !== undefined && { startTimestamp: cast.startTimestamp }),
       actualSpellId: cast.spell.id,
       expectedSpellId,
       expectedSpellRuleConditions: expectedRule?.conditions ?? null,

@@ -22,6 +22,17 @@ export interface SpellCastSuccessEvent extends CombatLogEventBase, SpellEventFie
   type: 'SPELL_CAST_SUCCESS'
 }
 
+/**
+ * Début d'un cast (temps de cast non-instantané). N'existe pas pour les sorts instantanés
+ * (seul `SPELL_CAST_SUCCESS` est alors logué). Nécessaire pour distinguer le début réel d'un
+ * cast de sa fin — un temps de cast variable (ex : Trait prismatique, plus court à charges
+ * arcaniques élevées) ferait sinon compter à tort sa propre durée comme temps mort dans la
+ * rotation (voir `classifyRotationErrors`).
+ */
+export interface SpellCastStartEvent extends CombatLogEventBase, SpellEventFields {
+  type: 'SPELL_CAST_START'
+}
+
 export interface SpellAuraAppliedEvent extends CombatLogEventBase, SpellEventFields {
   type: 'SPELL_AURA_APPLIED'
   auraType: AuraType
@@ -75,6 +86,7 @@ export interface SpellEnergizeEvent extends CombatLogEventBase, SpellEventFields
  */
 export type CombatLogEvent =
   | SpellCastSuccessEvent
+  | SpellCastStartEvent
   | SpellAuraAppliedEvent
   | SpellAuraAppliedDoseEvent
   | SpellAuraRemovedEvent

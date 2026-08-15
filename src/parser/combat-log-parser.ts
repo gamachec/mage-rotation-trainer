@@ -7,6 +7,7 @@ import type { AuraType, CombatLogEvent, CombatLogEventBase, CombatLogEventType }
  */
 const HANDLED_EVENT_TYPES = new Set<CombatLogEventType>([
   'SPELL_CAST_SUCCESS',
+  'SPELL_CAST_START',
   'SPELL_AURA_APPLIED',
   'SPELL_AURA_APPLIED_DOSE',
   'SPELL_AURA_REMOVED',
@@ -137,6 +138,9 @@ function buildEvent(prefix: ParsedPrefix, timestamp: number): CombatLogEvent | n
   switch (eventType) {
     case 'SPELL_CAST_SUCCESS':
       return { type: 'SPELL_CAST_SUCCESS', timestamp, ...base, ...spellFields }
+
+    case 'SPELL_CAST_START':
+      return { type: 'SPELL_CAST_START', timestamp, ...base, ...spellFields }
 
     case 'SPELL_AURA_APPLIED':
     case 'SPELL_AURA_REMOVED': {

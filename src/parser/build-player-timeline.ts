@@ -41,12 +41,26 @@ export function buildPlayerTimeline(events: CombatLogEvent[], player: Player): P
   const damageTicks: TimelineDamageTick[] = []
   const resourceGains: TimelineResourceGain[] = []
 
+  // Cast bar en cours pour le joueur (au plus une à la fois). Écrasée par tout nouveau
+  // SPELL_CAST_START, y compris si le précédent n'a jamais été consommé par un
+  // SPELL_CAST_SUCCESS (cast interrompu — SPELL_CAST_FAILED n'est pas parsé).
+  let pendingCastStart: { spellId: number; timestamp: number } | null = null
+
   events.forEach((event, sequence) => {
     switch (event.type) {
+      case 'SPELL_CAST_START':
+        if (event.sourceGuid === player.guid) {
+          pendingCastStart = { spellId: event.spellId, timestamp: event.timestamp }
+        }
+        break
       case 'SPELL_CAST_SUCCESS':
         if (event.sourceGuid === player.guid) {
+          const startTimestamp =
+            pendingCastStart?.spellId === event.spellId ? pendingCastStart.timestamp : undefined
+          pendingCastStart = null
           casts.push({
             timestamp: event.timestamp,
+            ...(startTimestamp !== undefined && { startTimestamp }),
             sequence,
             spell: { id: event.spellId, name: event.spellName },
           })

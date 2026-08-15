@@ -17,6 +17,14 @@ function correctResult(timestamp: number, spellId: number): RotationComparisonRe
   }
 }
 
+function correctResultWithStart(
+  startTimestamp: number,
+  timestamp: number,
+  spellId: number,
+): RotationComparisonResult {
+  return { ...correctResult(timestamp, spellId), startTimestamp }
+}
+
 function wrongResult(
   timestamp: number,
   actualSpellId: number,
@@ -141,6 +149,25 @@ describe('classifyRotationErrors', () => {
     const analysis = classifyRotationErrors(results, 3000, [2500, null])
 
     expect(analysis.errors).toEqual([{ type: 'rotation-gap', timestamp: 2500, durationMs: 7500 }])
+  })
+
+  it("n'utilise pas la durée d'un cast long comme temps mort quand startTimestamp est fourni (temps de cast variable, ex : Trait prismatique)", () => {
+    // Cast précédent fini à 1000, cast suivant démarré à 2000 (délai réel 1000ms) mais avec un
+    // temps de cast de 3s (SPELL_CAST_SUCCESS à 5000) : sans startTimestamp, le gap calculé
+    // serait 5000 - 1000 = 4000ms, à tort au-dessus du seuil.
+    const results = [correctResult(1000, ARCANE_BLAST), correctResultWithStart(2000, 5000, ARCANE_BLAST)]
+
+    const analysis = classifyRotationErrors(results, 3000)
+
+    expect(analysis.errors).toEqual([])
+  })
+
+  it('détecte quand même un gap si le délai reste excessif avant le début réel du cast (startTimestamp)', () => {
+    const results = [correctResult(1000, ARCANE_BLAST), correctResultWithStart(6000, 8000, ARCANE_BLAST)]
+
+    const analysis = classifyRotationErrors(results, 3000)
+
+    expect(analysis.errors).toEqual([{ type: 'rotation-gap', timestamp: 1000, durationMs: 5000 }])
   })
 
   it('retourne un score de 100 et aucune erreur sans aucun cast', () => {

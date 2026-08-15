@@ -7,6 +7,7 @@ import { parseCombatLog, parseCombatLogLine } from './combat-log-parser'
  */
 const REAL_LINES = {
   castSuccess: `8/15/2026 11:27:15.9822  SPELL_CAST_SUCCESS,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Creature-0-3894-0-85410-243167-00007FC38E,"Mannequin d'entraînement de donjonage",0x10a28,0x80000000,30451,"Déflagration des Arcanes",0x40,Player-1127-0AC1C10B,0000000000000000,576620,576620,229,2481,541,592,152,0,0,331065,331065,6875,8196.63,-4344.20,2393,2.8493,293`,
+  castStart: `8/15/2026 17:40:42.9232  SPELL_CAST_START,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,0000000000000000,nil,0x80000000,0x80000000,1295924,"Trait prismatique",0x40`,
   auraApplied: `8/15/2026 11:27:15.9832  SPELL_AURA_APPLIED,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,1242974,"Salve arcanique",0x40,BUFF`,
   auraAppliedDose: `8/15/2026 11:27:17.6962  SPELL_AURA_APPLIED_DOSE,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,1242974,"Salve arcanique",0x40,BUFF,4`,
   auraRemovedDose: `8/15/2026 11:27:21.9782  SPELL_AURA_REMOVED_DOSE,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,Player-1127-0AC1C10B,"Hânakiel-KirinTor-EU",0x511,0x80000000,449322,"Cascade de mana",0x1,BUFF,1`,
@@ -30,6 +31,17 @@ describe('parseCombatLogLine', () => {
       destName: "Mannequin d'entraînement de donjonage",
       spellId: 30451,
       spellName: 'Déflagration des Arcanes',
+    })
+  })
+
+  it('parse un SPELL_CAST_START (début de cast, temps de cast non-instantané)', () => {
+    const event = parseCombatLogLine(REAL_LINES.castStart, ARBITRARY_BASE_MS)
+    expect(event).toMatchObject({
+      type: 'SPELL_CAST_START',
+      sourceGuid: 'Player-1127-0AC1C10B',
+      sourceName: 'Hânakiel-KirinTor-EU',
+      spellId: 1295924,
+      spellName: 'Trait prismatique',
     })
   })
 
