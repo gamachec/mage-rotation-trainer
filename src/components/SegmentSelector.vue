@@ -10,6 +10,7 @@ import type { CombatSegment } from '../types'
 const props = defineProps<{
   segments: CombatSegment[]
   modelValue: CombatSegment | null
+  scores?: number[]
 }>()
 
 const emit = defineEmits<{
@@ -34,11 +35,13 @@ const selectedIndex = computed(() => {
   return index === -1 ? '' : index
 })
 
+// Présélectionne automatiquement le dernier segment détecté : en pratique c'est celui qu'on
+// vient de jouer, donc le plus susceptible d'intéresser l'utilisateur juste après un upload.
 watch(
   () => props.segments,
   (segments) => {
-    if (segments.length === 1) {
-      emit('update:modelValue', segments[0])
+    if (segments.length > 0) {
+      emit('update:modelValue', segments[segments.length - 1])
     }
   },
   { immediate: true },
@@ -47,6 +50,11 @@ watch(
 function formatDuration(segment: CombatSegment): string {
   const seconds = Math.round((segment.endTimestamp - segment.startTimestamp) / 1000)
   return `${seconds}s`
+}
+
+function formatScore(index: number): string {
+  const score = props.scores?.[index]
+  return score === undefined ? '' : ` — ${score}%`
 }
 
 function onSelect(event: Event) {
@@ -62,7 +70,8 @@ function onSelect(event: Event) {
     </p>
 
     <p v-else-if="hasSingleSegment" class="segment-selector__single">
-      Segment de combat détecté : <strong>{{ formatDuration(segments[0]) }}</strong>
+      Segment de combat détecté :
+      <strong>{{ formatDuration(segments[0]) }}{{ formatScore(0) }}</strong>
     </p>
 
     <label v-else class="segment-selector__field">
@@ -70,7 +79,7 @@ function onSelect(event: Event) {
       <select :value="selectedIndex" @change="onSelect">
         <option value="" disabled>-- Choisir --</option>
         <option v-for="(segment, index) in segments" :key="index" :value="index">
-          Segment {{ index + 1 }} ({{ formatDuration(segment) }})
+          Segment {{ index + 1 }} ({{ formatDuration(segment) }}{{ formatScore(index) }})
         </option>
       </select>
     </label>
@@ -94,8 +103,9 @@ function onSelect(event: Event) {
 
 .segment-selector__field {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
   color: var(--parchment);
 }
 

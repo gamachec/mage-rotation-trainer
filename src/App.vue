@@ -24,10 +24,15 @@ const rotationConfig = loadDefaultRotationConfig()
  */
 const INACTIVITY_THRESHOLD_MS = 5_000
 
+/** Clé localStorage utilisée pour préselectionner automatiquement le dernier personnage choisi. */
+const LAST_PLAYER_STORAGE_KEY = 'mage-rotation-trainer:last-player-name'
+
 const isParsing = ref(false)
+const isDraggingFile = ref(false)
 const parseProgress = ref<CombatLogParseProgress | null>(null)
 const parseError = ref<string | null>(null)
 const events = ref<CombatLogEvent[]>([])
+const fileName = ref<string | null>(null)
 
 const selectedPlayerGuid = ref<Guid | null>(null)
 const selectedSegment = ref<CombatSegment | null>(null)
@@ -46,6 +51,23 @@ const selectedPlayer = computed(() => {
     return null
   }
   return players.value.find((player) => player.guid === selectedPlayerGuid.value) ?? null
+})
+
+/**
+ * Score de conformité (%) de chaque segment détecté, dans le même ordre que `segments` — affiché
+ * dans `SegmentSelector` à côté de la durée pour aider à repérer le segment le plus propre sans
+ * devoir tous les sélectionner un par un.
+ */
+const segmentScores = computed(() => {
+  const player = selectedPlayer.value
+  if (player === null) {
+    return []
+  }
+  return segments.value.map((segment) => {
+    const filteredEvents = filterEventsByPlayer(events.value, player.guid, segment)
+    const timeline = filterTimelineToKnownSpells(buildPlayerTimeline(filteredEvents, player), rotationConfig)
+    return analyzeRotation(timeline, rotationConfig, segment.startTimestamp, segment.endTimestamp).score
+  })
 })
 
 const playerTimeline = computed(() => {
@@ -118,11 +140,32 @@ watch(selectedPlayerGuid, () => {
   selectedSegment.value = null
 })
 
+// Préselectionne automatiquement le personnage utilisé lors de la session précédente : en
+// pratique, on ne change pas de personnage d'un upload à l'autre. Ne s'applique que si un choix
+// est réellement à faire (PlayerSelector gère déjà seul le cas d'un unique joueur détecté).
+watch(players, (detectedPlayers) => {
+  if (selectedPlayerGuid.value !== null || detectedPlayers.length <= 1) {
+    return
+  }
+  const lastPlayerName = localStorage.getItem(LAST_PLAYER_STORAGE_KEY)
+  const match = detectedPlayers.find((player) => player.name === lastPlayerName)
+  if (match) {
+    selectedPlayerGuid.value = match.guid
+  }
+})
+
+watch(selectedPlayer, (player) => {
+  if (player !== null) {
+    localStorage.setItem(LAST_PLAYER_STORAGE_KEY, player.name)
+  }
+})
+
 async function loadFile(file: File) {
   isParsing.value = true
   parseError.value = null
   parseProgress.value = null
   events.value = []
+  fileName.value = file.name
 
   try {
     events.value = await parseCombatLogFile(file, (progress) => {
@@ -147,6 +190,7 @@ function onFileInputChange(event: Event) {
 }
 
 function onDrop(event: DragEvent) {
+  isDraggingFile.value = false
   const file = event.dataTransfer?.files?.[0]
   if (file) {
     loadFile(file)
@@ -164,9 +208,43 @@ function onDrop(event: DragEvent) {
       </div>
     </header>
 
-    <section class="dropzone" @dragover.prevent @drop.prevent="onDrop">
-      <p class="dropzone__hint">Dépose ton combat log ici, ou choisis un fichier</p>
-      <input type="file" accept=".txt" @change="onFileInputChange" />
+    <p class="instructions">
+      Devant un mannequin, active les logs (<code>/combatlog</code>), joue un cycle de rotation
+      d'1min30 (jusqu'au prochain burst), arrête de caster pendant 5s, puis désactive les logs
+      (<code>/combatlog</code>). Uploade ensuite le fichier ci-dessous — tu peux répéter
+      l'opération autant de fois que tu veux dans un même fichier.
+    </p>
+
+    <section class="setup">
+      <div
+        class="dropzone"
+        :class="{ 'dropzone--active': isDraggingFile }"
+        @dragover.prevent="isDraggingFile = true"
+        @dragleave.prevent="isDraggingFile = false"
+        @drop.prevent="onDrop"
+      >
+        <span class="dropzone__icon" aria-hidden="true">⇩</span>
+        <p class="dropzone__hint">Glisse-dépose ton combat log ici</p>
+        <label class="dropzone__browse">
+          ou choisis un fichier
+          <input type="file" accept=".txt" @change="onFileInputChange" />
+        </label>
+        <p v-if="fileName" class="dropzone__filename">{{ fileName }}</p>
+      </div>
+
+      <div class="setup__selectors panel">
+        <div v-if="!isParsing && events.length > 0" class="setup__item">
+          <PlayerSelector v-model="selectedPlayerGuid" :players="players" />
+        </div>
+
+        <div v-if="selectedPlayerGuid !== null" class="setup__item">
+          <SegmentSelector v-model="selectedSegment" :segments="segments" :scores="segmentScores" />
+        </div>
+
+        <p v-if="events.length === 0" class="setup__placeholder">
+          Dépose un combat log à gauche pour commencer.
+        </p>
+      </div>
     </section>
 
     <section v-if="isParsing" class="progress">
@@ -175,14 +253,6 @@ function onDrop(event: DragEvent) {
     </section>
 
     <p v-if="parseError" class="error" role="alert">{{ parseError }}</p>
-
-    <section v-if="!isParsing && events.length > 0" class="panel">
-      <PlayerSelector v-model="selectedPlayerGuid" :players="players" />
-    </section>
-
-    <section v-if="selectedPlayerGuid !== null" class="panel">
-      <SegmentSelector v-model="selectedSegment" :segments="segments" />
-    </section>
 
     <section v-if="knownSpellsTimeline !== null" class="results">
       <RotationReport :analysis-result="analysisResult" />
@@ -237,39 +307,105 @@ function onDrop(event: DragEvent) {
   color: var(--gold-300);
 }
 
+.instructions {
+  color: var(--mist);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.instructions code {
+  background: var(--ink-800);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  color: var(--gold-300);
+  font-size: 0.82em;
+}
+
+.setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .setup {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dropzone {
-  border: 1px dashed var(--hairline-strong);
-  border-radius: 10px;
-  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   text-align: center;
+  border: 2px dashed var(--hairline-strong);
+  border-radius: 10px;
+  padding: 1.5rem 1.25rem;
   background: var(--ink-900);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.dropzone--active {
+  border-color: var(--arcane-300);
+  background: var(--ink-800);
+}
+
+.dropzone__icon {
+  font-size: 1.4rem;
+  color: var(--gold-400);
 }
 
 .dropzone__hint {
-  color: var(--mist);
-  margin: 0 0 0.9rem;
-}
-
-.dropzone input[type='file'] {
-  color: var(--mist);
-  font: inherit;
-  font-size: 0.85rem;
-}
-
-.dropzone input[type='file']::file-selector-button {
-  background: var(--ink-800);
-  color: var(--gold-300);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 6px;
-  padding: 0.45rem 0.9rem;
-  font: inherit;
-  cursor: pointer;
-  margin-right: 0.75rem;
-}
-
-.dropzone input[type='file']::file-selector-button:hover {
-  border-color: var(--arcane-300);
   color: var(--parchment);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.dropzone__browse {
+  position: relative;
+  color: var(--mist);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.dropzone__browse:hover {
+  color: var(--gold-300);
+}
+
+.dropzone__browse input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dropzone__filename {
+  margin: 0.3rem 0 0;
+  color: var(--gold-300);
+  font-size: 0.8rem;
+}
+
+.setup__selectors {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 0;
+}
+
+.setup__placeholder {
+  color: var(--mist);
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 .progress {

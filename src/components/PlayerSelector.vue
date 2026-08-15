@@ -72,8 +72,9 @@ function onSelect(event: Event) {
 
 .player-selector__field {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
   color: var(--parchment);
 }
 
