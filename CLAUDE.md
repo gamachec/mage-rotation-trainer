@@ -28,6 +28,33 @@ Application web d'analyse de rotation WoW Mage (spé Arcane en priorité), à pa
 - Si une étape de `PLAN.md` révèle une décision fonctionnelle non couverte par `SPECS.md`, la trancher avec l'utilisateur (pas unilatéralement) puis mettre à jour `SPECS.md` en conséquence.
 - Garder `SPECS.md` et `PLAN.md` à jour au fil de l'implémentation : si une décision fonctionnelle ou technique change en cours de route, répercuter le changement dans le document concerné plutôt que de laisser la documentation diverger du code.
 
+## Test dans un vrai navigateur (Playwright + Chromium headless)
+
+Pour les étapes UI (CLAUDE.md exige un test dans un vrai navigateur, pas juste `vue-tsc`/`vitest`), utiliser Playwright piloté en headless — aucun navigateur graphique n'est disponible dans cet environnement (WSL sans affichage, pas d'outil `chromium-cli`).
+
+**Mise en place (déjà faite une fois, réutilisable telle quelle d'une session à l'autre — rien n'est stocké dans `/tmp`)** :
+
+- Le paquet npm `playwright` n'est **pas** une dépendance du projet (ne pas l'ajouter à `package.json` — c'est un outil de test ad hoc pour l'agent, pas une dépendance de l'app livrée). L'installer à la demande avec `npm install playwright` dans un dossier de scratch (le cache npm `~/.npm` rend les installs suivantes quasi instantanées, pas de re-téléchargement).
+- Le binaire Chromium headless est déjà installé et mis en cache dans `~/.cache/ms-playwright/` (persistant, hors `/tmp`). Si absent : `npx --yes playwright install chromium`.
+- **Piège spécifique à cette machine** : `chromium-headless-shell` a besoin de `libnspr4`/`libnss3`, absentes du système et non installables sans mot de passe root (`sudo` non interactif indisponible ici — ne pas essayer `playwright install-deps`, ça échoue). Contournement sans toucher au système : les `.so` ont été extraites (via `apt-get download` + `dpkg-deb -x`, sans root) dans `~/.cache/claude-playwright-libs/` (persistant, hors `/tmp`, hors du repo). Si ce dossier disparaît, le recréer avec :
+  ```bash
+  mkdir -p ~/.cache/claude-playwright-libs
+  cd /tmp && rm -rf pw-libs-tmp && mkdir pw-libs-tmp && cd pw-libs-tmp
+  apt-get download libnspr4 libnss3
+  for f in *.deb; do dpkg-deb -x "$f" ~/.cache/claude-playwright-libs; done
+  cd .. && rm -rf pw-libs-tmp
+  ```
+
+**Utilisation** : toujours exporter le `LD_LIBRARY_PATH` avant de lancer Chromium via Playwright :
+
+```bash
+export LD_LIBRARY_PATH="$HOME/.cache/claude-playwright-libs/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+# lancer le serveur de dev, ex: npm run dev -- --port 5183 &
+# puis piloter avec un script Node utilisant `playwright` (chromium.launch({ args: ['--no-sandbox'] }))
+```
+
+Après toute modification de code, **redémarrer le serveur `vite` avant de retester** — un serveur déjà lancé avant l'édition peut servir une version stale du module malgré le HMR (piège vécu à l'étape 13 : un bug de binding `v-model` semblait persister alors qu'il était déjà corrigé, simplement parce que le serveur testé datait d'avant la correction).
+
 ## Langue
 
 Toutes les communications avec l'utilisateur (explications, commentaires de code si besoin, documentation) doivent être en français. Les identifiants de code, noms de sorts WoW, et termes techniques restent dans leur forme originale (anglais).

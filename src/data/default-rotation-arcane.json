@@ -1,0 +1,60 @@
+{
+  "rules": [
+    {
+      "spellId": 365350,
+      "conditions": [{ "type": "spellCooldownReady", "spellId": 365350, "cooldownMs": 90000 }]
+    },
+    {
+      "spellId": 321507,
+      "conditions": [
+        { "type": "spellCooldownReady", "spellId": 321507, "cooldownMs": 45000 },
+        { "type": "previousCastIs", "spellId": 44425 }
+      ]
+    },
+    {
+      "spellId": 321507,
+      "conditions": [
+        { "type": "spellCooldownReady", "spellId": 321507, "cooldownMs": 45000 },
+        { "type": "previousCastIs", "spellId": 1295924 }
+      ]
+    },
+    {
+      "spellId": 321507,
+      "conditions": [
+        { "type": "spellCooldownReady", "spellId": 321507, "cooldownMs": 45000 },
+        { "type": "auraActive", "spellId": 365350, "active": true }
+      ]
+    },
+    {
+      "spellId": 5143,
+      "conditions": [
+        { "type": "auraActive", "spellId": 263725, "active": true },
+        { "type": "auraStacks", "spellId": 384452, "operator": "<", "value": 12 }
+      ]
+    },
+    {
+      "spellId": 44425,
+      "conditions": [{ "type": "auraActive", "spellId": 451038, "active": true }]
+    },
+    {
+      "spellId": 1295924,
+      "conditions": [{ "type": "auraActive", "spellId": 1295924, "active": true }]
+    },
+    {
+      "spellId": 44425,
+      "conditions": [
+        { "type": "auraActive", "spellId": 263725, "active": true },
+        { "type": "auraStacks", "spellId": 384452, "operator": ">=", "value": 12 }
+      ]
+    },
+    {
+      "spellId": 153626,
+      "conditions": [{ "type": "auraStacks", "spellId": 36032, "operator": "==", "value": 0 }]
+    },
+    {
+      "spellId": 30451,
+      "conditions": []
+    }
+  ],
+  "channeledSpells": [{ "castSpellId": 5143, "tickSpellId": 7268, "expectedTicks": 7 }]
+}
