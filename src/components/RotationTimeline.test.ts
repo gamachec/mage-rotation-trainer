@@ -85,7 +85,9 @@ describe('RotationTimeline', () => {
     // 2 casts + 1 gap (le changement d'aura est fusionné dans l'état du cast, pas une ligne à part).
     expect(items).toHaveLength(3)
     expect(items[0].text()).toContain('Déflagration des Arcanes')
-    expect(items[0].text()).toContain('Charge Arcanique')
+    expect(items[0].find('.rotation-timeline__aura').attributes('title')).toContain(
+      'Charge Arcanique',
+    )
     expect(items[1].text()).toContain('Temps mort')
     expect(items[1].text()).toContain('4s')
     expect(items[2].text()).toContain('Missiles Arcaniques')
@@ -145,8 +147,9 @@ describe('RotationTimeline', () => {
     })
 
     const item = wrapper.find('.rotation-timeline__item')
-    expect(item.text()).toContain('Charge Arcanique')
-    expect(item.text()).not.toContain('Buff sans rapport')
+    const auras = item.findAll('.rotation-timeline__aura')
+    expect(auras).toHaveLength(1)
+    expect(auras[0].attributes('title')).toContain('Charge Arcanique')
   })
 
   it('affiche un marqueur pour une canalisation interrompue', () => {

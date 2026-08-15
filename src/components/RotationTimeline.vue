@@ -10,6 +10,7 @@ import { getSpellName } from '../data/get-spell-name'
 import { getSpellIcon } from '../data/spell-icons'
 import { describeRuleConditions } from '../data/describe-rotation-condition'
 import { getPowerTypeName } from '../data/power-type-name'
+import { getPowerTypeIconSpellId } from '../data/power-type-icon'
 import { getReferencedAuraSpellIds } from '../engine/rotation-config-auras'
 
 /**
@@ -174,25 +175,34 @@ function formatOffset(timestamp: number): string {
 
         <div class="rotation-timeline__state">
           <span
+            v-for="resource in item.resourceValues"
+            :key="`resource-${resource.powerType}`"
+            class="rotation-timeline__aura"
+            :title="`${getPowerTypeName(resource.powerType)} ×${resource.value}`"
+          >
+            <img
+              v-if="getPowerTypeIconSpellId(resource.powerType) && getSpellIcon(getPowerTypeIconSpellId(resource.powerType)!)"
+              class="rotation-timeline__aura-icon"
+              :src="getSpellIcon(getPowerTypeIconSpellId(resource.powerType)!)!"
+              :alt="getPowerTypeName(resource.powerType)"
+            />
+            <span v-else class="rotation-timeline__aura-fallback">{{ getPowerTypeName(resource.powerType) }}</span>
+            <span class="rotation-timeline__aura-stacks">{{ resource.value }}</span>
+          </span>
+          <span
             v-for="aura in item.activeAuras"
             :key="aura.spellId"
-            class="rotation-timeline__chip"
-            :title="aura.name"
+            class="rotation-timeline__aura"
+            :title="`${aura.name} ×${aura.stacks}`"
           >
             <img
               v-if="getSpellIcon(aura.spellId)"
-              class="rotation-timeline__chip-icon"
+              class="rotation-timeline__aura-icon"
               :src="getSpellIcon(aura.spellId)!"
               :alt="aura.name"
             />
-            {{ aura.name }} <span class="rotation-timeline__chip-stacks">×{{ aura.stacks }}</span>
-          </span>
-          <span
-            v-for="resource in item.resourceValues"
-            :key="resource.powerType"
-            class="rotation-timeline__chip rotation-timeline__chip--resource"
-          >
-            {{ getPowerTypeName(resource.powerType) }} : {{ resource.value }}
+            <span v-else class="rotation-timeline__aura-fallback">{{ aura.name }}</span>
+            <span class="rotation-timeline__aura-stacks">{{ aura.stacks }}</span>
           </span>
         </div>
       </template>
@@ -349,33 +359,53 @@ function formatOffset(timestamp: number): string {
   border-left: 1px solid var(--hairline);
 }
 
-.rotation-timeline__chip {
+.rotation-timeline__aura {
+  position: relative;
   display: inline-flex;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-shrink: 0;
+}
+
+.rotation-timeline__aura-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  border: 1px solid var(--hairline-strong);
+  object-fit: cover;
+}
+
+.rotation-timeline__aura-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
+  justify-content: center;
+  border-radius: 4px;
   border: 1px solid var(--hairline-strong);
   background: var(--ink-800);
   color: var(--mist);
-  font-size: 0.72rem;
-  white-space: nowrap;
+  font-size: 0.6rem;
+  line-height: 1.05;
+  text-align: center;
+  padding: 0.1rem;
+  overflow: hidden;
 }
 
-.rotation-timeline__chip--resource {
-  border-color: color-mix(in srgb, var(--gold-400) 40%, var(--hairline-strong));
-  color: var(--gold-200);
-}
-
-.rotation-timeline__chip-icon {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 2px;
-}
-
-.rotation-timeline__chip-stacks {
+.rotation-timeline__aura-stacks {
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.2rem;
+  min-width: 1.05rem;
+  padding: 0 0.15rem;
+  border-radius: 999px;
+  background: var(--ink-900);
+  border: 1px solid var(--arcane-300);
   color: var(--arcane-300);
   font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.15rem;
+  text-align: center;
 }
 
 .rotation-timeline__marker-label {
