@@ -1,25 +1,43 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { PlayerTimeline, RotationComparisonResult, RotationError } from '../types'
+import type {
+  PlayerTimeline,
+  RotationComparisonResult,
+  RotationConfig,
+  RotationError,
+} from '../types'
 import { getSpellName } from '../data/get-spell-name'
+import { getSpellIcon } from '../data/spell-icons'
+import { describeRuleConditions } from '../data/describe-rotation-condition'
+import { getPowerTypeName } from '../data/power-type-name'
+import { getReferencedAuraSpellIds } from '../engine/rotation-config-auras'
 
 /**
- * Visualisation de la timeline du combat (SPECS.md §7, PLAN.md Étape 14) : sorts castés,
- * changements de buffs/stacks, avec surlignage des erreurs détectées. Fusionne quatre sources
- * déjà produites par le pipeline `/engine` en une seule liste chronologique :
+ * Visualisation de la timeline du combat (SPECS.md §7, PLAN.md Étape 14, refonte Étape 17) :
+ * une ligne par cast réel, avec l'état du personnage (auras, ressources) reconstruit à cet
+ * instant en colonne droite — plutôt qu'une ligne séparée par changement d'aura (décision
+ * utilisateur Étape 17 : les changements d'aura sont fusionnés dans l'état affiché au cast
+ * suivant). Fusionnée avec deux autres sources déjà produites par `/engine` en une seule liste
+ * chronologique :
  * - `timeline.casts` (Étape 8) recoupé avec `comparisonResults` (Étape 10, même ordre/longueur
- *   que `timeline.casts` — `compareRotation` mappe dans cet ordre) pour savoir si un cast est
- *   correct et quel sort était attendu à la place.
- * - `timeline.auraChanges` (Étape 8) pour les gains/pertes de stacks.
- * - `errors` filtré sur `rotation-gap` (Étape 11) pour les temps morts entre deux casts.
- * - `errors` filtré sur `cooldown-wasted` (PLAN-BURST.md Étape 5) pour les cooldowns de burst
- *   suivis restés prêts sans être recastés, positionnés à `readyAt`.
+ *   que `timeline.casts`) pour l'état du personnage, la justesse du cast, et la règle qui
+ *   justifiait le sort attendu en cas d'erreur.
+ * - `errors` filtré sur `rotation-gap`/`cooldown-wasted`/`channel-interrupted` : ce ne sont pas
+ *   des casts, ils restent des marqueurs pleine largeur sur la même ligne de temps.
+ *
+ * Les auras affichées en colonne droite sont filtrées aux seules auras référencées par les
+ * conditions de `config` (`getReferencedAuraSpellIds`) — un combat log contient beaucoup
+ * d'auras sans rapport avec la priorité de sorts (buffs de caractéristiques, procs cosmétiques,
+ * consommables...), les afficher toutes noierait l'information utile à l'analyse de la rotation.
  */
 const props = defineProps<{
   timeline: PlayerTimeline
   comparisonResults: RotationComparisonResult[]
   errors: RotationError[]
+  config: RotationConfig
 }>()
+
+const relevantAuraSpellIds = computed(() => getReferencedAuraSpellIds(props.config))
 
 type CastItem = {
   kind: 'cast'
@@ -28,13 +46,9 @@ type CastItem = {
   actualSpellName: string
   isCorrect: boolean
   expectedSpellId: number | null
-}
-
-type AuraChangeItem = {
-  kind: 'aura-change'
-  timestamp: number
-  spellName: string
-  stacks: number
+  expectedRuleDescription: string
+  activeAuras: RotationComparisonResult['activeAuras']
+  resourceValues: RotationComparisonResult['resourceValues']
 }
 
 type GapItem = {
@@ -59,8 +73,7 @@ type ChannelInterruptedItem = {
   expectedTicks: number
 }
 
-type TimelineItem =
-  CastItem | AuraChangeItem | GapItem | CooldownWastedItem | ChannelInterruptedItem
+type TimelineItem = CastItem | GapItem | CooldownWastedItem | ChannelInterruptedItem
 
 const items = computed<TimelineItem[]>(() => {
   const castItems: CastItem[] = props.timeline.casts.map((cast, index) => {
@@ -72,15 +85,13 @@ const items = computed<TimelineItem[]>(() => {
       actualSpellName: cast.spell.name,
       isCorrect: result?.isCorrect ?? false,
       expectedSpellId: result?.expectedSpellId ?? null,
+      expectedRuleDescription: describeRuleConditions(result?.expectedSpellRuleConditions ?? null),
+      activeAuras: (result?.activeAuras ?? []).filter((aura) =>
+        relevantAuraSpellIds.value.has(aura.spellId),
+      ),
+      resourceValues: result?.resourceValues ?? [],
     }
   })
-
-  const auraChangeItems: AuraChangeItem[] = props.timeline.auraChanges.map((change) => ({
-    kind: 'aura-change',
-    timestamp: change.timestamp,
-    spellName: change.aura.name,
-    stacks: change.aura.stacks,
-  }))
 
   const gapItems: GapItem[] = props.errors
     .filter((error) => error.type === 'rotation-gap')
@@ -106,13 +117,9 @@ const items = computed<TimelineItem[]>(() => {
       expectedTicks: error.expectedTicks,
     }))
 
-  return [
-    ...castItems,
-    ...auraChangeItems,
-    ...gapItems,
-    ...cooldownWastedItems,
-    ...channelInterruptedItems,
-  ].sort((a, b) => a.timestamp - b.timestamp)
+  return [...castItems, ...gapItems, ...cooldownWastedItems, ...channelInterruptedItems].sort(
+    (a, b) => a.timestamp - b.timestamp,
+  )
 })
 
 const startTimestamp = computed(() => {
@@ -139,6 +146,7 @@ function formatOffset(timestamp: number): string {
       :key="index"
       class="rotation-timeline__item"
       :class="{
+        'rotation-timeline__item--cast': item.kind === 'cast',
         'rotation-timeline__item--wrong': item.kind === 'cast' && !item.isCorrect,
         'rotation-timeline__item--gap': item.kind === 'gap',
         'rotation-timeline__item--cooldown-wasted': item.kind === 'cooldown-wasted',
@@ -146,38 +154,65 @@ function formatOffset(timestamp: number): string {
       }"
     >
       <span class="rotation-timeline__time">{{ formatOffset(item.timestamp) }}</span>
+      <span class="rotation-timeline__node" aria-hidden="true"></span>
 
       <template v-if="item.kind === 'cast'">
-        <span class="rotation-timeline__label">{{ item.actualSpellName }}</span>
-        <span
-          v-if="!item.isCorrect && item.expectedSpellId !== null"
-          class="rotation-timeline__note"
-        >
-          attendu : {{ getSpellName(item.expectedSpellId) }}
-        </span>
-      </template>
+        <div class="rotation-timeline__cast">
+          <img
+            v-if="getSpellIcon(item.actualSpellId)"
+            class="rotation-timeline__icon"
+            :src="getSpellIcon(item.actualSpellId)!"
+            :alt="item.actualSpellName"
+          />
+          <div class="rotation-timeline__cast-text">
+            <span class="rotation-timeline__label">{{ item.actualSpellName }}</span>
+            <span v-if="!item.isCorrect && item.expectedSpellId !== null" class="rotation-timeline__note">
+              attendu : {{ getSpellName(item.expectedSpellId) }}
+              <span class="rotation-timeline__rule">({{ item.expectedRuleDescription }})</span>
+            </span>
+          </div>
+        </div>
 
-      <template v-else-if="item.kind === 'aura-change'">
-        <span class="rotation-timeline__label rotation-timeline__label--aura">
-          {{ item.spellName }} ({{ item.stacks }})
-        </span>
+        <div class="rotation-timeline__state">
+          <span
+            v-for="aura in item.activeAuras"
+            :key="aura.spellId"
+            class="rotation-timeline__chip"
+            :title="aura.name"
+          >
+            <img
+              v-if="getSpellIcon(aura.spellId)"
+              class="rotation-timeline__chip-icon"
+              :src="getSpellIcon(aura.spellId)!"
+              :alt="aura.name"
+            />
+            {{ aura.name }} <span class="rotation-timeline__chip-stacks">×{{ aura.stacks }}</span>
+          </span>
+          <span
+            v-for="resource in item.resourceValues"
+            :key="resource.powerType"
+            class="rotation-timeline__chip rotation-timeline__chip--resource"
+          >
+            {{ getPowerTypeName(resource.powerType) }} : {{ resource.value }}
+          </span>
+        </div>
       </template>
 
       <template v-else-if="item.kind === 'gap'">
-        <span class="rotation-timeline__label"
+        <span class="rotation-timeline__label rotation-timeline__marker-label"
           >Temps mort ({{ Math.round(item.durationMs / 1000) }}s)</span
         >
       </template>
 
       <template v-else-if="item.kind === 'cooldown-wasted'">
-        <span class="rotation-timeline__label">
+        <span class="rotation-timeline__label rotation-timeline__marker-label">
           CD gaspillé : {{ getSpellName(item.spellId) }} (prêt, recasté
           {{ item.castAt !== null ? `${Math.round(item.delayMs / 1000)}s plus tard` : 'jamais' }})
         </span>
       </template>
 
       <template v-else>
-        <span class="rotation-timeline__label">
+        <span class="rotation-timeline__label rotation-timeline__marker-label">
           Canalisation interrompue : {{ getSpellName(item.spellId) }} ({{ item.actualTicks }}/{{
             item.expectedTicks
           }}
@@ -195,52 +230,164 @@ function formatOffset(timestamp: number): string {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-height: 24rem;
+  max-height: 34rem;
   overflow-y: auto;
+  position: relative;
+}
+
+.rotation-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0.9rem;
+  bottom: 0.9rem;
+  left: 4.7rem;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--arcane-line) 4%,
+    var(--arcane-line) 96%,
+    transparent
+  );
+  box-shadow: 0 0 8px var(--arcane-glow);
 }
 
 .rotation-timeline__item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  align-items: start;
+  gap: 0 0.75rem;
+  padding: 0.55rem 0.5rem 0.55rem 0;
+  border-bottom: 1px solid var(--hairline);
 }
 
-.rotation-timeline__item--wrong {
-  background: #fdecea;
-}
-
-.rotation-timeline__item--gap {
-  background: #fdf3d0;
-}
-
-.rotation-timeline__item--cooldown-wasted {
-  background: #f0e4fa;
-}
-
-.rotation-timeline__item--channel-interrupted {
-  background: #fde2e2;
+.rotation-timeline__item--cast {
+  grid-template-columns: 3.4rem minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .rotation-timeline__time {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: #666;
-  min-width: 3rem;
+  color: var(--mist);
+  font-size: 0.82rem;
+  padding-top: 0.15rem;
+  text-align: right;
 }
 
-.rotation-timeline__label--aura {
-  color: #555;
-  font-size: 0.9em;
+.rotation-timeline__node {
+  position: absolute;
+  left: 4.7rem;
+  top: 0.85rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translateX(-4px);
+  background: var(--arcane-400);
+  box-shadow: 0 0 6px var(--arcane-glow);
+}
+
+.rotation-timeline__item--wrong .rotation-timeline__node {
+  background: var(--error-400);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--error-400) 60%, transparent);
+}
+
+.rotation-timeline__item--gap .rotation-timeline__node,
+.rotation-timeline__item--cooldown-wasted .rotation-timeline__node,
+.rotation-timeline__item--channel-interrupted .rotation-timeline__node {
+  background: var(--gold-400);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--gold-400) 60%, transparent);
+}
+
+.rotation-timeline__cast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-left: 0.9rem;
+}
+
+.rotation-timeline__icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  border: 1px solid var(--hairline-strong);
+  flex-shrink: 0;
+}
+
+.rotation-timeline__cast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.rotation-timeline__label {
+  font-family: var(--font-body);
+  color: var(--parchment);
+  font-size: 0.95rem;
+}
+
+.rotation-timeline__item--wrong .rotation-timeline__label {
+  color: var(--error-300);
 }
 
 .rotation-timeline__note {
-  color: #c0392b;
-  font-size: 0.9em;
+  color: var(--error-300);
+  font-size: 0.8rem;
+}
+
+.rotation-timeline__rule {
+  color: var(--mist);
+  font-style: italic;
+}
+
+.rotation-timeline__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.3rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--hairline);
+}
+
+.rotation-timeline__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  background: var(--ink-800);
+  color: var(--mist);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.rotation-timeline__chip--resource {
+  border-color: color-mix(in srgb, var(--gold-400) 40%, var(--hairline-strong));
+  color: var(--gold-200);
+}
+
+.rotation-timeline__chip-icon {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 2px;
+}
+
+.rotation-timeline__chip-stacks {
+  color: var(--arcane-300);
+  font-family: var(--font-mono);
+}
+
+.rotation-timeline__marker-label {
+  padding-left: 1.35rem;
+  color: var(--gold-200);
+  font-size: 0.85rem;
+  grid-column: 2 / -1;
 }
 
 .rotation-timeline__empty {
-  color: #666;
+  color: var(--mist);
+  padding: 0.5rem 0;
 }
 </style>

@@ -1,38 +1,85 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
+  /* Encre arcanique — fond profond indigo, pas un noir pur (PLAN.md Étape 17). */
+  --ink-950: #0c0e1f;
+  --ink-900: #12152c;
+  --ink-800: #1b2040;
+  --ink-700: #262c52;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --hairline: #262c52;
+  --hairline-strong: #3a3f72;
 
-  font: 18px/145% var(--sans);
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  /* Flux arcanique — accent violet, sobre, réservé à la ley-line et aux états actifs. */
+  --arcane-400: #8b7cf6;
+  --arcane-300: #ab9ffa;
+  --arcane-line: #7466e0;
+  --arcane-glow: rgba(139, 124, 246, 0.55);
+
+  /* Laiton/or — instruments, cooldowns, score. */
+  --gold-400: #d4af6a;
+  --gold-300: #e2c187;
+  --gold-200: #eeddb0;
+
+  --parchment: #ece6da;
+  --mist: #8890b8;
+  --mist-dim: #5c6390;
+
+  --error-400: #e2665a;
+  --error-300: #ef8d84;
+  --success-400: #6fcf97;
+  --success-300: #92dcb2;
+
+  --font-display: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, Inter, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  font: 16px/1.5 var(--font-body);
+  color-scheme: dark;
+  color: var(--parchment);
+  background: var(--ink-950);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background:
+    radial-gradient(ellipse 60rem 30rem at 50% -10%, rgba(139, 124, 246, 0.12), transparent),
+    var(--ink-950);
+  min-height: 100vh;
 }
 
 #app {
-  max-width: 1126px;
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 32px 20px;
-  box-sizing: border-box;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--parchment);
+  margin: 0;
+}
+
+::selection {
+  background: var(--arcane-glow);
+}
+
+a {
+  color: var(--arcane-300);
+}
+
+:focus-visible {
+  outline: 2px solid var(--arcane-300);
+  outline-offset: 2px;
 }

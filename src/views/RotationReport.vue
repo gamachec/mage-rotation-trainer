@@ -7,6 +7,7 @@ import type {
   WrongSpellError,
 } from '../types'
 import { getSpellName } from '../data/get-spell-name'
+import { getSpellIcon } from '../data/spell-icons'
 
 /**
  * Écran de rapport final (SPECS.md §7, PLAN.md Étape 15) : score global, axes d'amélioration
@@ -94,20 +95,26 @@ function formatSeconds(durationMs: number): string {
 
 <template>
   <section class="rotation-report">
-    <h2 class="rotation-report__score">Score global : {{ analysisResult.score }}%</h2>
+    <div class="rotation-report__hero">
+      <div class="rotation-report__dial" :style="{ '--score': analysisResult.score }">
+        <span class="rotation-report__score">{{ analysisResult.score }}%</span>
+        <span class="rotation-report__dial-label">conformité</span>
+      </div>
 
-    <section v-if="topImprovementAxes.length > 0" class="rotation-report__section">
-      <h3>Axes d'amélioration prioritaires</h3>
-      <ol class="rotation-report__axes">
-        <li
-          v-for="axis in topImprovementAxes"
-          :key="`${axis.actualSpellId}-${axis.expectedSpellId}`"
-        >
-          Vous avez casté <strong>{{ getSpellName(axis.actualSpellId) }}</strong> au lieu de
-          <strong>{{ getSpellName(axis.expectedSpellId) }}</strong> attendu — {{ axis.count }} fois
-        </li>
-      </ol>
-    </section>
+      <section v-if="topImprovementAxes.length > 0" class="rotation-report__axes-block">
+        <h3>Axes d'amélioration prioritaires</h3>
+        <ol class="rotation-report__axes">
+          <li
+            v-for="axis in topImprovementAxes"
+            :key="`${axis.actualSpellId}-${axis.expectedSpellId}`"
+          >
+            Vous avez casté <strong>{{ getSpellName(axis.actualSpellId) }}</strong> au lieu de
+            <strong>{{ getSpellName(axis.expectedSpellId) }}</strong> attendu — {{ axis.count }}
+            fois
+          </li>
+        </ol>
+      </section>
+    </div>
 
     <section class="rotation-report__section">
       <h3>Statistiques</h3>
@@ -131,6 +138,12 @@ function formatSeconds(durationMs: number): string {
           v-for="group in wrongSpellGroups"
           :key="`${group.actualSpellId}-${group.expectedSpellId}`"
         >
+          <img
+            v-if="getSpellIcon(group.actualSpellId)"
+            class="rotation-report__icon"
+            :src="getSpellIcon(group.actualSpellId)!"
+            :alt="getSpellName(group.actualSpellId)"
+          />
           {{ getSpellName(group.actualSpellId) }} au lieu de
           {{ getSpellName(group.expectedSpellId) }} — {{ group.count }} fois
         </li>
@@ -175,22 +188,101 @@ function formatSeconds(durationMs: number): string {
 </template>
 
 <style scoped>
+.rotation-report__hero {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.rotation-report__dial {
+  --ring-size: 8.5rem;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    var(--arcane-400) calc(var(--score) * 1%),
+    var(--ink-800) calc(var(--score) * 1%)
+  );
+  box-shadow: 0 0 22px var(--arcane-glow);
+  position: relative;
+}
+
+.rotation-report__dial::before {
+  content: '';
+  position: absolute;
+  inset: 0.55rem;
+  border-radius: 50%;
+  background: var(--ink-900);
+  border: 1px solid var(--hairline-strong);
+}
+
 .rotation-report__score {
-  font-size: 1.5rem;
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--gold-300);
+}
+
+.rotation-report__dial-label {
+  position: relative;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--mist);
+}
+
+.rotation-report__axes-block {
+  flex: 1;
+  min-width: 16rem;
+}
+
+.rotation-report__axes-block h3 {
+  color: var(--gold-300);
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .rotation-report__section {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
+}
+
+.rotation-report__section h3 {
+  color: var(--gold-300);
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .rotation-report__axes,
 .rotation-report__errors,
 .rotation-report__stats {
   padding-left: 1.25rem;
+  color: var(--parchment);
+  font-size: 0.9rem;
+  line-height: 1.7;
 }
 
 .rotation-report__stats {
   list-style: none;
   padding-left: 0;
+  color: var(--mist);
+}
+
+.rotation-report__errors li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rotation-report__icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 3px;
+  border: 1px solid var(--hairline-strong);
 }
 </style>

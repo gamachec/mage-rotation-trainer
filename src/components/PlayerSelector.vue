@@ -54,3 +54,35 @@ function onSelect(event: Event) {
     </label>
   </div>
 </template>
+
+<style scoped>
+.player-selector__empty {
+  color: var(--mist);
+  margin: 0;
+}
+
+.player-selector__single {
+  margin: 0;
+  color: var(--parchment);
+}
+
+.player-selector__single strong {
+  color: var(--gold-300);
+}
+
+.player-selector__field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--parchment);
+}
+
+select {
+  background: var(--ink-800);
+  color: var(--parchment);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+}
+</style>

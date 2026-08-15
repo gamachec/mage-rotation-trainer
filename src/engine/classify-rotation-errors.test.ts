@@ -10,8 +10,10 @@ function correctResult(timestamp: number, spellId: number): RotationComparisonRe
     timestamp,
     actualSpellId: spellId,
     expectedSpellId: spellId,
+    expectedSpellRuleConditions: [],
     isCorrect: true,
     activeAuras: [],
+    resourceValues: [],
   }
 }
 
@@ -20,14 +22,30 @@ function wrongResult(
   actualSpellId: number,
   expectedSpellId: number,
 ): RotationComparisonResult {
-  return { timestamp, actualSpellId, expectedSpellId, isCorrect: false, activeAuras: [] }
+  return {
+    timestamp,
+    actualSpellId,
+    expectedSpellId,
+    expectedSpellRuleConditions: [],
+    isCorrect: false,
+    activeAuras: [],
+    resourceValues: [],
+  }
 }
 
 function incompleteConfigResult(
   timestamp: number,
   actualSpellId: number,
 ): RotationComparisonResult {
-  return { timestamp, actualSpellId, expectedSpellId: null, isCorrect: false, activeAuras: [] }
+  return {
+    timestamp,
+    actualSpellId,
+    expectedSpellId: null,
+    expectedSpellRuleConditions: null,
+    isCorrect: false,
+    activeAuras: [],
+    resourceValues: [],
+  }
 }
 
 describe('classifyRotationErrors', () => {

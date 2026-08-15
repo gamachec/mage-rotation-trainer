@@ -2,7 +2,23 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import RotationTimeline from './RotationTimeline.vue'
-import type { PlayerTimeline, RotationComparisonResult, RotationError } from '../types'
+import type {
+  PlayerTimeline,
+  RotationComparisonResult,
+  RotationConfig,
+  RotationError,
+} from '../types'
+
+/** Référence 36032 (Charge Arcanique) via une condition, pour qu'elle reste affichée en colonne état. */
+const config: RotationConfig = {
+  rules: [
+    {
+      spellId: 44425,
+      conditions: [{ type: 'auraStacks', spellId: 36032, operator: '>=', value: 4 }],
+    },
+    { spellId: 30451, conditions: [] },
+  ],
+}
 
 const timeline: PlayerTimeline = {
   playerGuid: 'Player-1127-0AC1C10B',
@@ -26,15 +42,21 @@ const comparisonResults: RotationComparisonResult[] = [
     timestamp: 1_000,
     actualSpellId: 30451,
     expectedSpellId: 30451,
+    expectedSpellRuleConditions: [],
     isCorrect: true,
-    activeAuras: [],
+    activeAuras: [{ spellId: 36032, name: 'Charge Arcanique', type: 'BUFF', stacks: 1 }],
+    resourceValues: [],
   },
   {
     timestamp: 5_000,
     actualSpellId: 5143,
     expectedSpellId: 44425,
+    expectedSpellRuleConditions: [
+      { type: 'auraStacks', spellId: 36032, operator: '>=', value: 4 },
+    ],
     isCorrect: false,
-    activeAuras: [],
+    activeAuras: [{ spellId: 36032, name: 'Charge Arcanique', type: 'BUFF', stacks: 1 }],
+    resourceValues: [],
   },
 ]
 
@@ -47,35 +69,39 @@ describe('RotationTimeline', () => {
         timeline: { ...timeline, casts: [], auraChanges: [] },
         comparisonResults: [],
         errors: [],
+        config,
       },
     })
 
     expect(wrapper.text()).toContain('Aucun événement à afficher')
   })
 
-  it('affiche les casts, changements d’aura et gaps triés chronologiquement', () => {
+  it('affiche un cast par ligne, triés chronologiquement, avec l’état du personnage à droite', () => {
     const wrapper = mount(RotationTimeline, {
-      props: { timeline, comparisonResults, errors },
+      props: { timeline, comparisonResults, errors, config },
     })
 
     const items = wrapper.findAll('.rotation-timeline__item')
-    expect(items).toHaveLength(4)
+    // 2 casts + 1 gap (le changement d'aura est fusionné dans l'état du cast, pas une ligne à part).
+    expect(items).toHaveLength(3)
+    expect(items[0].text()).toContain('Déflagration des Arcanes')
     expect(items[0].text()).toContain('Charge Arcanique')
-    expect(items[1].text()).toContain('Déflagration des Arcanes')
-    expect(items[2].text()).toContain('Temps mort')
-    expect(items[2].text()).toContain('4s')
-    expect(items[3].text()).toContain('Missiles Arcaniques')
+    expect(items[1].text()).toContain('Temps mort')
+    expect(items[1].text()).toContain('4s')
+    expect(items[2].text()).toContain('Missiles Arcaniques')
   })
 
-  it('surligne un cast incorrect avec le sort attendu', () => {
+  it('surligne un cast incorrect avec le sort attendu et la règle qui le justifiait', () => {
     const wrapper = mount(RotationTimeline, {
-      props: { timeline, comparisonResults, errors: [] },
+      props: { timeline, comparisonResults, errors: [], config },
     })
 
     const wrongCast = wrapper.findAll('.rotation-timeline__item--wrong')
     expect(wrongCast).toHaveLength(1)
     expect(wrongCast[0].text()).toContain('Missiles Arcaniques')
     expect(wrongCast[0].text()).toContain('attendu')
+    expect(wrongCast[0].text()).toContain('Barrage des Arcanes')
+    expect(wrongCast[0].text()).toContain('Charge arcanique ≥ 4')
   })
 
   it('affiche un marqueur pour un cooldown de burst gaspillé, positionné à readyAt', () => {
@@ -84,13 +110,43 @@ describe('RotationTimeline', () => {
     ]
 
     const wrapper = mount(RotationTimeline, {
-      props: { timeline, comparisonResults, errors: cooldownWastedErrors },
+      props: { timeline, comparisonResults, errors: cooldownWastedErrors, config },
     })
 
     const marker = wrapper.findAll('.rotation-timeline__item--cooldown-wasted')
     expect(marker).toHaveLength(1)
     expect(marker[0].text()).toContain('Toucher des magi')
     expect(marker[0].text()).toContain('jamais')
+  })
+
+  it("ne montre en colonne état que les auras référencées par la config (filtre le bruit du log)", () => {
+    const comparisonResultsWithNoise: RotationComparisonResult[] = [
+      {
+        timestamp: 1_000,
+        actualSpellId: 30451,
+        expectedSpellId: 30451,
+        expectedSpellRuleConditions: [],
+        isCorrect: true,
+        activeAuras: [
+          { spellId: 36032, name: 'Charge Arcanique', type: 'BUFF', stacks: 1 },
+          { spellId: 999999, name: 'Buff sans rapport', type: 'BUFF', stacks: 1 },
+        ],
+        resourceValues: [],
+      },
+    ]
+
+    const wrapper = mount(RotationTimeline, {
+      props: {
+        timeline: { ...timeline, casts: [timeline.casts[0]] },
+        comparisonResults: comparisonResultsWithNoise,
+        errors: [],
+        config,
+      },
+    })
+
+    const item = wrapper.find('.rotation-timeline__item')
+    expect(item.text()).toContain('Charge Arcanique')
+    expect(item.text()).not.toContain('Buff sans rapport')
   })
 
   it('affiche un marqueur pour une canalisation interrompue', () => {
@@ -105,7 +161,7 @@ describe('RotationTimeline', () => {
     ]
 
     const wrapper = mount(RotationTimeline, {
-      props: { timeline, comparisonResults, errors: channelInterruptedErrors },
+      props: { timeline, comparisonResults, errors: channelInterruptedErrors, config },
     })
 
     const marker = wrapper.findAll('.rotation-timeline__item--channel-interrupted')

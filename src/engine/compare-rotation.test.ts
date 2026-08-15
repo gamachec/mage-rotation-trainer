@@ -77,8 +77,10 @@ describe('compareRotation', () => {
       timestamp: 1000,
       actualSpellId: ARCANE_BLAST,
       expectedSpellId: ARCANE_BLAST,
+      expectedSpellRuleConditions: [],
       isCorrect: true,
       activeAuras: [],
+      resourceValues: [],
     })
   })
 
@@ -98,6 +100,19 @@ describe('compareRotation', () => {
     expect(result.isCorrect).toBe(false)
     expect(result.expectedSpellId).toBe(ARCANE_BARRAGE)
     expect(result.actualSpellId).toBe(ARCANE_BLAST)
+    expect(result.expectedSpellRuleConditions).toEqual(CONFIG.rules[0].conditions)
+  })
+
+  it('expectedSpellRuleConditions est null si aucune règle ne matche', () => {
+    const configSansDefaut: RotationConfig = { rules: [CONFIG.rules[0]] }
+    const timeline = timelineFrom(
+      [{ timestamp: 1000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } }],
+      [],
+    )
+
+    const [result] = compareRotation(timeline, configSansDefaut)
+
+    expect(result.expectedSpellRuleConditions).toBeNull()
   })
 
   it("ignore un changement d'aura survenant au même timestamp que le cast (conséquence du cast, pas cause)", () => {
@@ -115,6 +130,42 @@ describe('compareRotation', () => {
 
     expect(result.activeAuras).toEqual([])
     expect(result.expectedSpellId).toBe(ARCANE_BLAST)
+  })
+
+  it("ignore un changement d'aura survenant quelques ms avant le cast (jitter d'écriture du vrai combat log entre l'effet d'un cast et son propre SPELL_CAST_SUCCESS)", () => {
+    const timeline = timelineFrom(
+      [{ timestamp: 1000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } }],
+      [
+        {
+          timestamp: 997,
+          aura: { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+        },
+      ],
+    )
+
+    const [result] = compareRotation(timeline, CONFIG)
+
+    expect(result.activeAuras).toEqual([])
+    expect(result.expectedSpellId).toBe(ARCANE_BLAST)
+  })
+
+  it("prend en compte un changement d'aura largement antérieur au cast (au-delà de la fenêtre de causalité)", () => {
+    const timeline = timelineFrom(
+      [{ timestamp: 1000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } }],
+      [
+        {
+          timestamp: 500,
+          aura: { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+        },
+      ],
+    )
+
+    const [result] = compareRotation(timeline, CONFIG)
+
+    expect(result.activeAuras).toEqual([
+      { spellId: ARCANE_CHARGES, name: 'Charges arcaniques', type: 'BUFF', stacks: 4 },
+    ])
+    expect(result.expectedSpellId).toBe(ARCANE_BARRAGE)
   })
 
   it('reconstruit l’état de charges au fil de plusieurs changements successifs (dernière valeur connue)', () => {
@@ -340,6 +391,23 @@ describe('condition resourceValue', () => {
 
     expect(result.expectedSpellId).toBe(ARCANE_BLAST)
     expect(result.isCorrect).toBe(true)
+  })
+
+  it('resourceValues expose la valeur reconstruite de chaque powerType observé dans la timeline', () => {
+    const timeline: PlayerTimeline = {
+      playerGuid: 'Player-1-AAAA',
+      playerName: 'Someone',
+      casts: [{ timestamp: 1000, spell: { id: ARCANE_BLAST, name: 'Déflagration des Arcanes' } }],
+      auraChanges: [],
+      damageTicks: [],
+      resourceGains: [
+        { timestamp: 500, powerType: ARCANE_CHARGES_POWER_TYPE, amount: 2, maxPower: 4 },
+      ],
+    }
+
+    const [result] = compareRotation(timeline, ORB_CONFIG)
+
+    expect(result.resourceValues).toEqual([{ powerType: ARCANE_CHARGES_POWER_TYPE, value: 2 }])
   })
 
   it('resourceValue retombe à 0 après le cast d’un sort consommateur déclaré', () => {

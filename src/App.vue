@@ -141,48 +141,140 @@ function onDrop(event: DragEvent) {
 
 <template>
   <main>
-    <h1>Mage Rotation Trainer</h1>
+    <header class="app-header">
+      <span class="app-header__glyph" aria-hidden="true">✦</span>
+      <div>
+        <h1 class="app-header__title">Mage Rotation Trainer</h1>
+        <p class="app-header__subtitle">Analyse de rotation Arcane à partir d'un combat log</p>
+      </div>
+    </header>
 
     <section class="dropzone" @dragover.prevent @drop.prevent="onDrop">
-      <p>Dépose ton combat log ici, ou choisis un fichier :</p>
+      <p class="dropzone__hint">Dépose ton combat log ici, ou choisis un fichier</p>
       <input type="file" accept=".txt" @change="onFileInputChange" />
     </section>
 
     <section v-if="isParsing" class="progress">
-      <p>Analyse du fichier en cours... {{ progressPercent }}%</p>
+      <p>Analyse du fichier en cours… {{ progressPercent }}%</p>
       <progress :value="progressPercent" max="100" />
     </section>
 
     <p v-if="parseError" class="error" role="alert">{{ parseError }}</p>
 
-    <section v-if="!isParsing && events.length > 0">
+    <section v-if="!isParsing && events.length > 0" class="panel">
       <PlayerSelector v-model="selectedPlayerGuid" :players="players" />
     </section>
 
-    <section v-if="selectedPlayerGuid !== null">
+    <section v-if="selectedPlayerGuid !== null" class="panel">
       <SegmentSelector v-model="selectedSegment" :segments="segments" />
     </section>
 
-    <section v-if="playerTimeline !== null">
+    <section v-if="playerTimeline !== null" class="results">
       <RotationReport :analysis-result="analysisResult" />
-      <RotationTimeline
-        :timeline="playerTimeline"
-        :comparison-results="comparisonResults"
-        :errors="analysisResult.errors"
-      />
+      <div class="panel panel--timeline">
+        <h3 class="panel__title">Timeline du combat</h3>
+        <RotationTimeline
+          :timeline="playerTimeline"
+          :comparison-results="comparisonResults"
+          :errors="analysisResult.errors"
+          :config="rotationConfig"
+        />
+      </div>
     </section>
   </main>
 </template>
 
 <style scoped>
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.app-header__glyph {
+  font-size: 2rem;
+  color: var(--gold-400);
+  text-shadow: 0 0 14px var(--arcane-glow);
+}
+
+.app-header__title {
+  font-size: 1.9rem;
+}
+
+.app-header__subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--mist);
+  font-size: 0.9rem;
+}
+
+.panel {
+  background: var(--ink-900);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.panel__title {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--gold-300);
+}
+
 .dropzone {
-  border: 2px dashed #888;
-  border-radius: 8px;
-  padding: 2rem;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 10px;
+  padding: 2.5rem 2rem;
   text-align: center;
+  background: var(--ink-900);
+}
+
+.dropzone__hint {
+  color: var(--mist);
+  margin: 0 0 0.9rem;
+}
+
+.dropzone input[type='file'] {
+  color: var(--mist);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.dropzone input[type='file']::file-selector-button {
+  background: var(--ink-800);
+  color: var(--gold-300);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  margin-right: 0.75rem;
+}
+
+.dropzone input[type='file']::file-selector-button:hover {
+  border-color: var(--arcane-300);
+  color: var(--parchment);
+}
+
+.progress {
+  margin-top: 1.25rem;
+  color: var(--mist);
+}
+
+.results {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel--timeline {
+  margin-top: 0;
 }
 
 .error {
-  color: #c0392b;
+  color: var(--error-400);
+  margin-top: 1rem;
 }
 </style>
