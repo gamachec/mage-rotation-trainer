@@ -211,10 +211,9 @@ function onDrop(event: DragEvent) {
     </header>
 
     <p class="instructions">
-      Devant un mannequin, active les logs (<code>/combatlog</code>), exécute ta rotation (durée libre), arrête de
-      caster pendant 5s, puis désactive les logs (<code>/combatlog</code>) pour éviter de polluer le fichier
-      inutilement. Uploade ensuite le log ci-dessous. Tu peux répéter l'opération autant de fois que tu veux dans un
-      même fichier.
+      Devant un mannequin, active les logs (<code>/combatlog</code>), exécute ta rotation (durée libre), puis arrête de
+      cast pendant 5s pour arrêter le segment. Uploade ensuite le log ci-dessous entre les pulls.
+      N'utiliser qu'avec un fichier log provenant d'un mannequin !
     </p>
 
     <section class="setup">
