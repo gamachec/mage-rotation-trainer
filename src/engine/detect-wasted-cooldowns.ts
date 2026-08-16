@@ -4,7 +4,7 @@ import type { CooldownWastedError, PlayerTimeline, RotationConfig } from '../typ
  * Seuil au-delà duquel un cooldown de burst resté prêt sans être recasté est considéré comme
  * gaspillé.
  */
-export const DEFAULT_COOLDOWN_WASTED_THRESHOLD_MS = 2500
+export const DEFAULT_COOLDOWN_WASTED_THRESHOLD_MS = 6000
 
 type TrackedCooldown = { spellId: number; cooldownMs: number }
 

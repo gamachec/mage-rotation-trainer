@@ -70,16 +70,18 @@ const segmentScores = computed(() => {
   })
 })
 
+const filteredEvents = computed(() => {
+  if (selectedPlayer.value === null || selectedSegment.value === null) {
+    return []
+  }
+  return filterEventsByPlayer(events.value, selectedPlayer.value.guid, selectedSegment.value)
+})
+
 const playerTimeline = computed(() => {
   if (selectedPlayer.value === null || selectedSegment.value === null) {
     return null
   }
-  const filteredEvents = filterEventsByPlayer(
-      events.value,
-      selectedPlayer.value.guid,
-      selectedSegment.value,
-  )
-  return buildPlayerTimeline(filteredEvents, selectedPlayer.value)
+  return buildPlayerTimeline(filteredEvents.value, selectedPlayer.value)
 })
 
 /**

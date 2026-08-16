@@ -50,6 +50,13 @@ export LD_LIBRARY_PATH="$HOME/.cache/claude-playwright-libs/usr/lib/x86_64-linux
 
 Après toute modification de code, **redémarrer le serveur `vite` avant de retester** — un serveur déjà lancé avant l'édition peut servir une version stale du module malgré le HMR (piège vécu à l'étape 13 : un bug de binding `v-model` semblait persister alors qu'il était déjà corrigé, simplement parce que le serveur testé datait d'avant la correction).
 
+## Timestamp brut dans la timeline (débogage)
+
+La timeline de l'app (`RotationTimeline.vue`) affiche, en tout petit sous le temps relatif
+(`mm:ss`) de chaque événement, le timestamp brut en millisecondes, **relatif au début du fichier
+source** (`rotation-timeline__raw-timestamp`). L'utilisateur peut s'en servir comme référence pour
+pointer un événement précis lors d'un échange sur une détection qui se passe mal.
+
 ## Langue
 
 Toutes les communications avec l'utilisateur (explications, commentaires de code si besoin, documentation) doivent être en français. Les identifiants de code, noms de sorts WoW, et termes techniques restent dans leur forme originale (anglais).

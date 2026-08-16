@@ -136,7 +136,8 @@ function formatOffset(timestamp: number): string {
 </script>
 
 <template>
-  <ol class="rotation-timeline">
+  <div class="rotation-timeline-wrapper">
+    <ol class="rotation-timeline">
     <li v-if="items.length === 0" class="rotation-timeline__empty">
       Aucun événement à afficher pour ce segment.
     </li>
@@ -153,7 +154,10 @@ function formatOffset(timestamp: number): string {
         'rotation-timeline__item--channel-interrupted': item.kind === 'channel-interrupted',
       }"
     >
-      <span class="rotation-timeline__time">{{ formatOffset(item.timestamp) }}</span>
+      <span class="rotation-timeline__time">
+        {{ formatOffset(item.timestamp) }}
+        <span class="rotation-timeline__raw-timestamp">{{ item.timestamp }}</span>
+      </span>
       <span class="rotation-timeline__node" aria-hidden="true"></span>
 
       <template v-if="item.kind === 'cast'">
@@ -230,9 +234,14 @@ function formatOffset(timestamp: number): string {
       </template>
     </li>
   </ol>
+  </div>
 </template>
 
 <style scoped>
+.rotation-timeline-wrapper {
+  position: relative;
+}
+
 .rotation-timeline {
   list-style: none;
   margin: 0;
@@ -276,12 +285,21 @@ function formatOffset(timestamp: number): string {
 }
 
 .rotation-timeline__time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--mist);
   font-size: 0.82rem;
   padding-top: 0.15rem;
   text-align: right;
+}
+
+.rotation-timeline__raw-timestamp {
+  font-size: 0.62rem;
+  color: var(--mist);
+  opacity: 0.45;
 }
 
 .rotation-timeline__node {

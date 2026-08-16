@@ -54,18 +54,18 @@ describe('detectWastedCooldowns', () => {
   it('détecte un délai excessif entre le moment où le CD est prêt et le prochain cast réel', () => {
     const timeline = timelineFrom([
       { timestamp: 0, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } },
-      { timestamp: 95000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } },
+      { timestamp: 98000, spell: { id: ARCANE_SURGE, name: 'Éruption des Arcanes' } },
     ])
 
-    const errors = detectWastedCooldowns(timeline, CONFIG, 0, 96000)
+    const errors = detectWastedCooldowns(timeline, CONFIG, 0, 99000)
 
     expect(errors).toEqual([
       {
         type: 'cooldown-wasted',
         spellId: ARCANE_SURGE,
         readyAt: 90000,
-        castAt: 95000,
-        delayMs: 5000,
+        castAt: 98000,
+        delayMs: 8000,
       },
     ])
   })

@@ -48,6 +48,10 @@
       ]
     },
     {
+      "spellId": 44425,
+      "conditions": [{ "type": "auraStacks", "spellId": 1242974, "operator": "==", "value": 25 }]
+    },
+    {
       "spellId": 153626,
       "conditions": [{ "type": "resourceValue", "powerType": 16, "operator": "==", "value": 0 }]
     },
