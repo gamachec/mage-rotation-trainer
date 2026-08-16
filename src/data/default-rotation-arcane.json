@@ -43,6 +43,14 @@
     {
       "spellId": 44425,
       "conditions": [
+        { "type": "previousCastIs", "spellId": 1295924 },
+        { "type": "auraStacks", "spellId": 1242974, "operator": ">", "value": 12 },
+        { "type": "auraActive", "spellId": 263725, "active": false }
+      ]
+    },
+    {
+      "spellId": 44425,
+      "conditions": [
         { "type": "auraActive", "spellId": 263725, "active": true },
         { "type": "auraStacks", "spellId": 1242974, "operator": ">=", "value": 12 }
       ]
